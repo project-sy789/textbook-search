@@ -485,9 +485,17 @@ function exportToXLS() {
     }
     
     // Convert cart objects to suitable format for Excel
+    let totalQty = 0;
+    let grandTotal = 0;
+    
     const exportData = cart.map(book => {
         const qty = book.quantity || 1;
         const price = parsePrice(book["ราคา"]);
+        const lineTotal = price * qty;
+        
+        totalQty += qty;
+        grandTotal += lineTotal;
+        
         return {
             "บัญชี": book["บัญชี"] || "",
             "ประเภท": book["ประเภท"] || "",
@@ -498,8 +506,22 @@ function exportToXLS() {
             "สำนักพิมพ์": book["ผู้จัดพิมพ์"] || "",
             "ราคาต่อหน่วย": price,
             "จำนวนเล่ม": qty,
-            "ราคารวม": price * qty
+            "ราคารวม": lineTotal
         };
+    });
+    
+    // Append a Grand Total row
+    exportData.push({
+        "บัญชี": "",
+        "ประเภท": "",
+        "ชื่อหนังสือ": "รวมยอดทั้งหมด",
+        "รายวิชา": "",
+        "กลุ่มสาระ": "",
+        "ระดับชั้น": "",
+        "สำนักพิมพ์": "",
+        "ราคาต่อหน่วย": "",
+        "จำนวนเล่ม": totalQty,
+        "ราคารวม": grandTotal
     });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
