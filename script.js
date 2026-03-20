@@ -257,15 +257,46 @@ function renderGrid() {
             ? `<img src="${imgSrc}" alt="${book["ชื่อหนังสือ"]}" loading="lazy" onerror="this.outerHTML='<div class=\\'no-image-placeholder\\'><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg><span>ไม่มีรูปภาพ</span></div>'">` 
             : `<div class="no-image-placeholder"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>`;
 
+        // Check Early Workbook Lock
+        let isIllegalWorkbook = false;
+        let illegalReason = "";
+        let t = (book["ประเภท"] || "");
+        if (isObecStrictMode && t.includes("แบบฝึกหัด")) {
+            let cat = getGradeCategory(book["ชั้น"] || "");
+            if (cat === "อนุบาล") {
+                isIllegalWorkbook = true;
+                illegalReason = "ปฐมวัยห้ามซื้อแบบฝึกหัด";
+            } else if (cat === "มัธยม") {
+                isIllegalWorkbook = true;
+                illegalReason = "ระดับมัธยมห้ามซื้อแบบฝึกหัด";
+            } else if (cat === "ประถม") {
+                let s = book["กลุ่มสาระการเรียนรู้"] || "";
+                if (!s.includes("ภาษาไทย") && !s.includes("คณิตศาสตร์") && !s.includes("ต่างประเทศ")) {
+                    isIllegalWorkbook = true;
+                    illegalReason = "ประถมอนุญาตเฉพาะแบบฝึกหัด ไทย, คณิต, อังกฤษ";
+                }
+            }
+        }
+
         const inCart = cart.find(b => b._id === book._id);
-        const btnClass = inCart ? "btn-add-cart added" : "btn-add-cart";
-        const btnText = inCart 
+        
+        let btnClass = inCart ? "btn-add-cart added" : "btn-add-cart";
+        let btnText = inCart 
             ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> นำเข้าแล้ว`
             : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> เข้าตะกร้า`;
         
-        const onclickAttr = inCart 
+        let onclickAttr = inCart 
             ? `onclick="event.stopPropagation();"` 
             : `onclick="event.stopPropagation(); addToCart(this, ${book._id})"`;
+            
+        let disabledAttr = "";
+
+        if (!inCart && isIllegalWorkbook) {
+            btnClass = "btn-add-cart";
+            btnText = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.2rem;"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> ห้ามซื้อ`;
+            onclickAttr = `onclick="event.stopPropagation(); alert('ผิดระเบียบ สพฐ.: ${illegalReason}');"`;
+            disabledAttr = `title="ผิดระเบียบ สพฐ.: ${illegalReason}" style="background-color: rgba(255,255,255,0.05); color: #ef4444; cursor: not-allowed; border-color: rgba(239, 68, 68, 0.3);"`;
+        }
 
         card.innerHTML = `
             ${book["บัญชี"] ? `<div class="badge-tag">${book["บัญชี"]}</div>` : ''}
@@ -292,7 +323,7 @@ function renderGrid() {
                 
                 <div class="price-tag">
                     <span>${book["ราคา"] || 'ไม่ระบุ'}</span>
-                    <button class="${btnClass}" ${onclickAttr}>
+                    <button class="${btnClass}" ${onclickAttr} ${disabledAttr}>
                         ${btnText}
                     </button>
                 </div>
