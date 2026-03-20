@@ -364,7 +364,7 @@ function addToCart(btnElement, bookId) {
     
     // Check if duplicate
     if(!cart.find(b => b._id === bookId)) {
-        cart.push(book);
+        cart.push({ ...book, quantity: 1 });
         saveCart();
         
         // Visual feedback
@@ -387,6 +387,7 @@ function saveCart() {
 }
 
 function updateCartBadge() {
+    // Count distinct items (or sum, up to preference. Badge usually counts distinct product lines)
     cartBadge.textContent = cart.length;
     if (cart.length > 0) {
         cartBadge.style.animation = "spin 0.3s ease-out";
@@ -394,9 +395,22 @@ function updateCartBadge() {
     }
 }
 
+function updateQuantity(bookId, newQty) {
+    const item = cart.find(b => b._id === bookId);
+    if (item) {
+        item.quantity = Math.max(1, parseInt(newQty) || 1);
+        saveCart();
+        
+        // Update Total Items without re-rendering the whole cart body to avoid losing input focus
+        let total = cart.reduce((sum, b) => sum + (b.quantity || 1), 0);
+        cartTotalItems.textContent = `${total} เล่ม`;
+    }
+}
+
 function renderCart() {
     cartItemsContainer.innerHTML = '';
-    cartTotalItems.textContent = `${cart.length} เล่ม`;
+    let totalQty = cart.reduce((sum, book) => sum + (book.quantity || 1), 0);
+    cartTotalItems.textContent = `${totalQty} เล่ม`;
     
     if (cart.length === 0) {
         cartItemsContainer.innerHTML = '<div style="text-align:center; padding: 2rem; color:var(--text-muted);">ไม่มีหนังสือในตะกร้า เริ่มค้นหาและเพิ่มได้เลย!</div>';
@@ -406,10 +420,15 @@ function renderCart() {
     cart.forEach(book => {
         const item = document.createElement('div');
         item.className = 'cart-item';
+        const qty = book.quantity || 1;
         item.innerHTML = `
             <div class="cart-item-info">
                 <div class="cart-item-title">${book["ชื่อหนังสือ"]}</div>
                 <div class="cart-item-meta">${book["บัญชี"] || ''} | ${book["ประเภท"] || ''} - ${book["ราคา"] || 'ไม่ระบุราคา'}</div>
+            </div>
+            <div class="cart-item-qty" style="display:flex; align-items:center; gap:0.5rem; margin-right: 1rem;">
+                <span style="font-size:0.85rem; color:var(--text-muted);">จำนวน: </span>
+                <input type="number" min="1" value="${qty}" onchange="updateQuantity(${book._id}, this.value)" style="width: 60px; padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; text-align: center; font-family: var(--font-family);">
             </div>
             <button class="btn-remove" onclick="removeFromCart(${book._id})" title="ลบออก">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -434,7 +453,8 @@ function exportToXLS() {
         "กลุ่มสาระ": book["กลุ่มสาระการเรียนรู้"] || "",
         "ระดับชั้น": book["ชั้น"] || "",
         "สำนักพิมพ์": book["ผู้จัดพิมพ์"] || "",
-        "ราคา": book["ราคา"] || ""
+        "ราคา": book["ราคา"] || "",
+        "จำนวนเล่ม": book.quantity || 1
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
