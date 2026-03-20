@@ -123,25 +123,7 @@ function validateCart(cartItems, gradeLevel, studentCount, strictMode) {
     }
     
     return result;
-}
-
-// OBEC Budget Settings
-let currentGrade = localStorage.getItem('cartGrade') || "ป.6";
-let currentStudentCount = parseInt(localStorage.getItem('cartStudentCount')) || 30;
-let isObecStrictMode = localStorage.getItem('obecStrictMode') !== "false";
-
-const BUDGET_RATES = {
-    "อนุบาล": 200, "อ.1": 200, "อ.2": 200, "อ.3": 200,
-    "ป.1": 656, "ป.2": 650, "ป.3": 653, "ป.4": 707, "ป.5": 846, "ป.6": 859,
-    "ม.1": 808, "ม.2": 921, "ม.3": 996,
-    "ม.4": 1384, "ม.5": 1326, "ม.6": 1164
-};
-
-function getGradeCategory(grade) {
-    if (grade.includes("อนุบาล") || grade.includes("อ.")) return "อนุบาล";
-    if (grade.includes("ป.")) return "ประถม";
-    if (grade.includes("ม.")) return "มัธยม";
-    return "";
+    return result;
 }
 
 // DOM Elements
