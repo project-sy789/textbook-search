@@ -152,10 +152,20 @@ def main():
     
     if all_books:
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Save main data
         filename = os.path.join(project_dir, "data.json")
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(all_books, f, ensure_ascii=False, indent=2)
         print(f"Saved to {filename}")
+
+        # Save metadata timestamp
+        import datetime
+        now = datetime.datetime.now(datetime.timezone.utc)
+        meta_filename = os.path.join(project_dir, "updated.json")
+        with open(meta_filename, 'w', encoding='utf-8') as f:
+            json.dump({"last_updated": now.isoformat()}, f)
+        print(f"Metadata saved to {meta_filename}")
 
 if __name__ == "__main__":
     main()
