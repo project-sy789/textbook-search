@@ -818,17 +818,53 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* Budget Settings Panel */
-.budget-settings {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--glass-border);
-    padding: 1.25rem 1.5rem;
-    border-radius: 12px;
-    margin-bottom: 1.5rem;
+/* Budget Settings Panel (Compact for Header) */
+.budget-toolbar-compact {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 0.5rem 1rem;
+    border-radius: 12px;
+}
+
+.budget-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.budget-toolbar-label {
+    font-size: 0.85rem; 
+    color: var(--text-muted); 
+    white-space: nowrap;
+}
+
+.strict-mode-label {
+    font-weight: 500;
+    color: white;
+}
+
+.budget-toolbar-input {
+    padding: 0.4rem; 
+    height: auto; 
+    min-height: 0;
+}
+
+.budget-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--glass-border);
+}
+
+@media (max-width: 1024px) {
+    .budget-toolbar-compact {
+        width: 100%;
+        justify-content: space-between;
+        order: 3;
+        margin-top: 0.5rem;
+    }
 }
 
 /* Validation Alerts */
