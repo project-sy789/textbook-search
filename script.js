@@ -5,6 +5,145 @@ let cart = []; // The shopping cart array
 let currentPage = 1;
 const itemsPerPage = 24;
 
+// OBEC Budget State
+let currentGrade = localStorage.getItem('cartGrade') || "ป.6";
+let currentStudentCount = parseInt(localStorage.getItem('cartStudentCount')) || 30;
+let isObecStrictMode = localStorage.getItem('obecStrictMode') !== "false"; // default true
+
+const BUDGET_RATES = {
+    "อนุบาล": 200, "อ.1": 200, "อ.2": 200, "อ.3": 200,
+    "ป.1": 656, "ป.2": 650, "ป.3": 653, "ป.4": 707, "ป.5": 846, "ป.6": 859,
+    "ม.1": 808, "ม.2": 921, "ม.3": 996,
+    "ม.4": 1384, "ม.5": 1326, "ม.6": 1164
+};
+
+function getGradeCategory(grade) {
+    if (grade.includes("อ.") || grade.includes("อนุบาล")) return "อนุบาล";
+    if (grade.includes("ป.")) return "ประถม";
+    if (grade.includes("ม.")) return "มัธยม";
+    return "";
+}
+
+function validateCart(cartItems, gradeLevel, studentCount, strictMode) {
+    let budgetPerStudent = BUDGET_RATES[gradeLevel] || 0;
+    let totalBudget = budgetPerStudent * studentCount;
+    let totalPrice = cartItems.reduce((sum, item) => sum + (parsePrice(item["ราคา"]) * (item.quantity || 1)), 0);
+    let remainingBudget = totalBudget - totalPrice;
+    
+    let result = {
+        totalBudget,
+        totalPrice,
+        remainingBudget,
+        isValid: true,
+        errors: [],
+        warnings: [],
+        canBuySupplementary: false,
+        budgetStatusMessage: "",
+        budgetStatusColor: ""
+    };
+    
+    let account1Subjects = new Set();
+    let hasWorkbook = false;
+    let hasAccount2 = false;
+    let hasAccount3 = false;
+    let badWorkbooks = new Set();
+    let oldEditions = new Set();
+    
+    cartItems.forEach(item => {
+        let acc = item["บัญชี"] || "";
+        if (acc.includes("บัญชี 1")) {
+            if (item["กลุ่มสาระการเรียนรู้"]) account1Subjects.add(item["กลุ่มสาระการเรียนรู้"].trim());
+        }
+        if (item["ประเภท"] && item["ประเภท"].includes("แบบฝึกหัด")) hasWorkbook = true;
+        if (acc.includes("บัญชี 2")) hasAccount2 = true;
+        if (acc.includes("บัญชี 3")) hasAccount3 = true;
+        
+        // Curriculum Check 2560
+        if (strictMode) {
+            let subj = item["กลุ่มสาระการเรียนรู้"] || "";
+            if (subj.includes("คณิตศาสตร์") || subj.includes("วิทยาศาสตร์") || subj.includes("ภูมิศาสตร์")) {
+                let is2560 = (item["ปีพิมพ์เผยแพร่"] === "2560" || (item["ชื่อหนังสือ"] && item["ชื่อหนังสือ"].includes("2560")));
+                if (!is2560) {
+                    oldEditions.add(`ระวัง: "${item["ชื่อหนังสือ"]}" อาจไม่ใช่ฉบับปรับปรุง 2560`);
+                }
+            }
+        }
+    });
+    
+    let has8Groups = account1Subjects.size >= 8;
+    
+    if (strictMode) {
+        let gradeCat = getGradeCategory(gradeLevel);
+        
+        // 1. Basic Subject Check
+        if (gradeCat !== "อนุบาล" && !has8Groups && cartItems.length > 0) {
+            result.warnings.push("คุณยังเลือกหนังสือเรียนรายวิชาพื้นฐาน (บัญชี 1) ไม่ครบ 8 กลุ่มสาระ");
+        }
+        
+        // 2. Workbook Validation
+        if (hasWorkbook) {
+            if (gradeCat === "อนุบาล") {
+                result.errors.push("ระดับปฐมวัยไม่อนุญาตให้จัดซื้อแบบฝึกหัด (อนุญาตเฉพาะหนังสือเสริมประสบการณ์)");
+            } else if (gradeCat === "มัธยม") {
+                result.errors.push("ระดับมัธยมศึกษาไม่อนุญาตให้ใช้งบเรียนฟรีจัดซื้อแบบฝึกหัด");
+            } else if (gradeCat === "ประถม") {
+                cartItems.forEach(item => {
+                    if (item["ประเภท"] && item["ประเภท"].includes("แบบฝึกหัด")) {
+                        let subj = item["กลุ่มสาระการเรียนรู้"] || "";
+                        if (!subj.includes("ภาษาไทย") && !subj.includes("คณิตศาสตร์") && !subj.includes("ภาษาต่างประเทศ")) {
+                            badWorkbooks.add(`ประถมศึกษาไม่อนุญาตให้ซื้อแบบฝึกหัดวิชา: ${subj || 'ระบุไม่ได้'}`);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // 3. Account 2 & 3 Lock Check
+        if ((hasAccount2 || hasAccount3) && (!has8Groups || remainingBudget < 0)) {
+            result.errors.push("สื่อการเรียนรู้ (บัญชี 2) และวิชาเพิ่มเติม (บัญชี 3) จะจัดซื้อได้เมื่อเลือกวิชาพื้นฐานครบ 8 กลุ่มสาระและมีงบประมาณเหลือจ่ายเท่านั้น");
+        }
+        
+        badWorkbooks.forEach(e => result.errors.push(e));
+        oldEditions.forEach(w => result.warnings.push(w));
+        
+        if (result.errors.length > 0) result.isValid = false;
+    }
+    
+    // C. Budget Management Alerts
+    if (remainingBudget < 0) {
+        result.budgetStatusMessage = "🔴 งบประมาณไม่เพียงพอ: ตามระเบียบ สพฐ. ให้ยืมเงินจาก 'รายการค่ากิจกรรมพัฒนาคุณภาพผู้เรียน' มาใช้เป็นลำดับแรก หากยังไม่พอให้ยืมจาก 'รายการค่าจัดการเรียนการสอน' และเมื่อได้รับจัดสรรเพิ่มเติมให้ส่งใช้คืน";
+        result.budgetStatusColor = "red";
+    } else if (remainingBudget > 0 && has8Groups) {
+        result.canBuySupplementary = true;
+        result.budgetStatusMessage = `🟢 มีงบประมาณเหลือจ่าย ฿${remainingBudget.toLocaleString('th-TH')}: สามารถนำไปจัดซื้อสื่อการเรียนรู้ (บัญชี 2), หนังสือรายวิชาเพิ่มเติม (บัญชี 3) หรือจัดทำเอกสารประกอบการเรียนได้ (ต้องผ่านความเห็นชอบจากคณะกรรมการภาคี 4 ฝ่ายและกรรมการสถานศึกษา)`;
+        result.budgetStatusColor = "green";
+    } else if (remainingBudget > 0 && cartItems.length > 0) {
+        result.budgetStatusMessage = `🟡 มีงบประมาณว่าง ฿${remainingBudget.toLocaleString('th-TH')} (ยังเลือกวิชาพื้นฐานไม่ครบ)`;
+        result.budgetStatusColor = "yellow";
+    }
+    
+    return result;
+}
+
+// OBEC Budget Settings
+let currentGrade = localStorage.getItem('cartGrade') || "ป.6";
+let currentStudentCount = parseInt(localStorage.getItem('cartStudentCount')) || 30;
+let isObecStrictMode = localStorage.getItem('obecStrictMode') !== "false";
+
+const BUDGET_RATES = {
+    "อนุบาล": 200, "อ.1": 200, "อ.2": 200, "อ.3": 200,
+    "ป.1": 656, "ป.2": 650, "ป.3": 653, "ป.4": 707, "ป.5": 846, "ป.6": 859,
+    "ม.1": 808, "ม.2": 921, "ม.3": 996,
+    "ม.4": 1384, "ม.5": 1326, "ม.6": 1164
+};
+
+function getGradeCategory(grade) {
+    if (grade.includes("อนุบาล") || grade.includes("อ.")) return "อนุบาล";
+    if (grade.includes("ป.")) return "ประถม";
+    if (grade.includes("ม.")) return "มัธยม";
+    return "";
+}
+
 // DOM Elements
 const bookGrid = document.getElementById('bookGrid');
 const loading = document.getElementById('loading');
@@ -69,6 +208,27 @@ async function init() {
             console.error('No updated.json found', e);
         }
         
+        // Apply initial configurations
+        document.getElementById('cartGradeSelect').value = currentGrade;
+        document.getElementById('cartStudentCount').value = currentStudentCount;
+        document.getElementById('obecStrictModeToggle').checked = isObecStrictMode;
+
+        document.getElementById('cartGradeSelect').addEventListener('change', (e) => {
+            currentGrade = e.target.value;
+            localStorage.setItem('cartGrade', currentGrade);
+            renderCart(); renderGrid();
+        });
+        document.getElementById('cartStudentCount').addEventListener('input', (e) => {
+            currentStudentCount = Math.max(1, parseInt(e.target.value) || 1);
+            localStorage.setItem('cartStudentCount', currentStudentCount);
+            renderCart(); renderGrid();
+        });
+        document.getElementById('obecStrictModeToggle').addEventListener('change', (e) => {
+            isObecStrictMode = e.target.checked;
+            localStorage.setItem('obecStrictMode', isObecStrictMode);
+            renderCart(); renderGrid();
+        });
+
         populateFilters();
         applyFilters();
         
@@ -418,6 +578,96 @@ function parsePrice(priceStr) {
     return isNaN(val) ? 0 : val;
 }
 
+function validateCartRules() {
+    let budgetPerStudent = BUDGET_RATES[currentGrade] || 0;
+    let totalBudget = budgetPerStudent * currentStudentCount;
+    let totalPrice = cart.reduce((sum, b) => sum + (parsePrice(b["ราคา"]) * (b.quantity || 1)), 0);
+    let remainingBudget = totalBudget - totalPrice;
+    
+    let res = {
+        totalBudget, totalPrice, remainingBudget,
+        isValid: true,
+        errors: [], warnings: [],
+        canBuySupplementary: false,
+        budgetMsg: "",
+        budgetClass: "success"
+    };
+    
+    let account1Subjects = new Set();
+    let hasWorkbook = false;
+    let hasAccount3 = false;
+    
+    cart.forEach(item => {
+        let acc = item["บัญชี"] || "";
+        let t = item["ประเภท"] || "";
+        let subj = item["กลุ่มสาระการเรียนรู้"] || "";
+        let title = item["ชื่อหนังสือ"] || "";
+        
+        if (acc.includes("บัญชี 1")) {
+            if (subj) account1Subjects.add(subj.trim());
+        }
+        if (t.includes("แบบฝึกหัด")) hasWorkbook = true;
+        if (acc.includes("บัญชี 3")) hasAccount3 = true;
+        
+        // Curriculum Checking
+        if (isObecStrictMode && acc.includes("บัญชี 1")) {
+            if (subj.includes("คณิตศาสตร์") || subj.includes("วิทยาศาสตร์") || subj.includes("ภูมิศาสตร์")) {
+                let is2560 = (item["ปีพิมพ์เผยแพร่"] === "2560" || title.includes("2560") || title.includes("60"));
+                if (!is2560) {
+                    res.warnings.push(`ตรวจสอบ: [${title}] กลุ่ม${subj} อาจไม่ใช่ฉบับปรับปรุง พ.ศ. 2560`);
+                }
+            }
+        }
+    });
+    
+    let has8Groups = account1Subjects.size >= 8;
+    
+    if (isObecStrictMode) {
+        let cat = getGradeCategory(currentGrade);
+        
+        // Basic Subjects
+        if (cat !== "อนุบาล" && !has8Groups && cart.length > 0) {
+            res.warnings.push(`คุณเลือกหนังสือวิชาพื้นฐาน (บัญชี 1) ไปแล้ว ${account1Subjects.size} จาก 8 กลุ่มสาระ`);
+        }
+        
+        // Workbooks
+        if (hasWorkbook) {
+            if (cat === "อนุบาล") {
+                res.errors.push("ระดับปฐมวัย ไม่อนุญาตให้จัดซื้อแบบฝึกหัด (อนุญาตเฉพาะหนังสือเสริมประสบการณ์)");
+            } else if (cat === "มัธยม") {
+                res.errors.push("ระดับมัธยมศึกษา ไม่อนุญาตให้ใช้งบเรียนฟรีจัดซื้อแบบฝึกหัด");
+            } else if (cat === "ประถม") {
+                cart.forEach(item => {
+                    if ((item["ประเภท"] || "").includes("แบบฝึกหัด")) {
+                        let subj = item["กลุ่มสาระการเรียนรู้"] || "";
+                        if (!subj.includes("ภาษาไทย") && !subj.includes("คณิตศาสตร์") && !subj.includes("ต่างประเทศ")) {
+                            res.errors.push(`ระดับประถมศึกษา อนุญาตให้ซื้อแบบฝึกหัดได้เฉพาะ ภาษาไทย, คณิตศาสตร์, ภาษาอังกฤษ (พบวิชา: ${subj})`);
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Account 3 Lock
+        if (hasAccount3 && (!has8Groups || remainingBudget < 0)) {
+            res.errors.push("วิชาเพิ่มเติม (บัญชี 3) ไม่อนุญาตให้ซื้อจนกว่าจะเลือกวิชาพื้นฐานครบ 8 กลุ่มสาระและมีงบประมาณเหลือจ่าย");
+        }
+    }
+    
+    if (res.errors.length > 0) res.isValid = false;
+    
+    if (remainingBudget < 0) {
+        res.budgetMsg = "🔴 งบประมาณไม่เพียงพอ: ตามระเบียบ สพฐ. ให้ยืมเงินจาก 'รายการค่ากิจกรรมฯ' มาใช้เป็นลำดับแรก หากยังไม่พอให้ยืมจาก 'รายการจัดการเรียนการสอน' และเมื่อได้รับจัดสรรเพิ่มให้ส่งใช้คืน";
+        res.budgetClass = "error";
+    } else if (remainingBudget > 0 && has8Groups) {
+        res.canBuySupplementary = true;
+        res.budgetMsg = "🟢 งบประมาณเหลือจ่าย: สามารถนำไปจัดซื้อรายวิชาเพิ่มเติม (บัญชี 3) หรือสำเนาเอกสารประกอบการเรียนได้ โดยต้องผ่านความเห็นชอบของคณะกรรมการ 4 ฝ่าย";
+        res.budgetClass = "success";
+    }
+    
+    return res;
+}
+
 function updateQuantity(bookId, newQty) {
     const item = cart.find(b => b._id === bookId);
     if (item) {
@@ -425,29 +675,82 @@ function updateQuantity(bookId, newQty) {
         saveCart();
         
         // Update Total Items without re-rendering the whole cart body to avoid losing input focus
-        let total = 0;
-        let totalPrice = 0;
-        cart.forEach(b => {
-            const qty = b.quantity || 1;
-            total += qty;
-            totalPrice += parsePrice(b["ราคา"]) * qty;
+        renderCartDashboardOnly();
+    }
+}
+
+function renderCartDashboardOnly() {
+    let vRes = validateCartRules();
+    
+    // Update total label
+    let totalQty = cart.reduce((sum, b) => sum + (b.quantity || 1), 0);
+    cartTotalItems.innerHTML = `${totalQty} เล่ม <span style="color:#34d399; margin-left:1rem;">฿${vRes.totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2})}</span>`;
+    
+    // Update Budget UI
+    const dash = document.getElementById('budgetDashboard');
+    const alerts = document.getElementById('validationAlerts');
+    
+    let percentUsed = Math.min(100, (vRes.totalPrice / vRes.totalBudget) * 100);
+    if (!vRes.totalBudget || vRes.totalBudget === 0) percentUsed = 0;
+    
+    let colorHex = vRes.remainingBudget < 0 ? '#ef4444' : '#3b82f6';
+    
+    dash.innerHTML = `
+        <div class="budget-stats">
+            <div class="budget-stat-item">
+                <div class="budget-stat-label">งบอุดหนุนต่อหัว x นักเรียน</div>
+                <div class="budget-stat-value">฿${vRes.totalBudget.toLocaleString('th-TH')}</div>
+            </div>
+            <div class="budget-stat-item">
+                <div class="budget-stat-label">ยอดจัดซื้อรวม</div>
+                <div class="budget-stat-value" style="color:${colorHex}">฿${vRes.totalPrice.toLocaleString('th-TH')}</div>
+            </div>
+            <div class="budget-stat-item">
+                <div class="budget-stat-label">งบประมาณเหลือจ่าย</div>
+                <div class="budget-stat-value" style="color:${colorHex}">฿${vRes.remainingBudget.toLocaleString('th-TH')}</div>
+            </div>
+        </div>
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: ${percentUsed}%; background-color: ${percentUsed > 100 ? '#ef4444' : '#3b82f6'};"></div>
+        </div>
+    `;
+    
+    // Update Alerts
+    let altHtml = '';
+    if (vRes.budgetMsg) {
+        let bCls = vRes.budgetClass === "error" ? "alert-error" : "alert-success";
+        altHtml += `<div class="alert ${bCls}">${vRes.budgetMsg}</div>`;
+    }
+    if (isObecStrictMode) {
+        vRes.errors.forEach(e => {
+            altHtml += `<div class="alert alert-error">❌ ${e}</div>`;
         });
-        cartTotalItems.innerHTML = `${total} เล่ม <span style="color:#34d399; margin-left:1rem;">฿${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+        vRes.warnings.forEach(w => {
+            altHtml += `<div class="alert alert-warn">⚠️ ${w}</div>`;
+        });
+    }
+    alerts.innerHTML = altHtml;
+    
+    // Disable Export if Strict Mode fails
+    const btnExp = document.getElementById('exportCartBtn');
+    if (btnExp) {
+        if (!vRes.isValid && isObecStrictMode) {
+            btnExp.disabled = true;
+            btnExp.style.opacity = '0.5';
+            btnExp.style.cursor = 'not-allowed';
+            btnExp.title = "กรุณาแก้ไขข้อผิดพลาดตามระเบียบ สพฐ. ก่อนนำออกเอกสาร";
+        } else {
+            btnExp.disabled = false;
+            btnExp.style.opacity = '1';
+            btnExp.style.cursor = 'pointer';
+            btnExp.title = "";
+        }
     }
 }
 
 function renderCart() {
     cartItemsContainer.innerHTML = '';
-    
-    let totalQty = 0;
-    let totalPrice = 0;
-    cart.forEach(book => {
-        const qty = book.quantity || 1;
-        totalQty += qty;
-        totalPrice += parsePrice(book["ราคา"]) * qty;
-    });
-    
-    cartTotalItems.innerHTML = `${totalQty} เล่ม <span style="color:#34d399; margin-left:1rem;">฿${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
+    renderCartDashboardOnly();
     
     if (cart.length === 0) {
         cartItemsContainer.innerHTML = '<div style="text-align:center; padding: 2rem; color:var(--text-muted);">ไม่มีหนังสือในตะกร้า เริ่มค้นหาและเพิ่มได้เลย!</div>';
