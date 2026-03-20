@@ -1,6 +1,7 @@
 // State Management
 let allBooks = [];
 let filteredBooks = [];
+let cart = []; // The shopping cart array
 let currentPage = 1;
 const itemsPerPage = 24;
 
@@ -18,10 +19,20 @@ const filterSubject = document.getElementById('filterSubject');
 const filterGrade = document.getElementById('filterGrade');
 const filterPublisher = document.getElementById('filterPublisher');
 const resetFilters = document.getElementById('resetFilters');
+const accountNotice = document.getElementById('accountNotice');
 
 const modal = document.getElementById('bookModal');
 const closeModal = document.getElementById('closeModal');
 const modalContent = document.getElementById('modalContent');
+
+const cartTrigger = document.getElementById('cartTrigger');
+const cartBadge = document.getElementById('cartBadge');
+const cartModal = document.getElementById('cartModal');
+const closeCartModal = document.getElementById('closeCartModal');
+const cartItemsContainer = document.getElementById('cartItems');
+const cartTotalItems = document.getElementById('cartTotalItems');
+const clearCartBtn = document.getElementById('clearCartBtn');
+const exportCartBtn = document.getElementById('exportCartBtn');
 
 // Initialize App
 async function init() {
@@ -30,17 +41,17 @@ async function init() {
         if (!response.ok) throw new Error('Network response was not ok');
         allBooks = await response.json();
         
-        // Remove duplicates if any (based on name and grade)
-        const uniqueKeys = new Set();
-        const uniqueBooks = [];
-        allBooks.forEach(book => {
-            const key = `${book["ชื่อหนังสือ"]}-${book["ชั้น"]}-${book["ผู้จัดพิมพ์"]}`;
-            if (!uniqueKeys.has(key)) {
-                uniqueKeys.add(key);
-                uniqueBooks.push(book);
-            }
+        // Add unique ID to each book to easily manage them in cart
+        allBooks.forEach((book, idx) => {
+            book._id = idx;
         });
-        allBooks = uniqueBooks;
+        
+        // Load cart from localStorage
+        const savedCart = localStorage.getItem('textbookCart');
+        if (savedCart) {
+            cart = JSON.parse(savedCart);
+            updateCartBadge();
+        }
         
         populateFilters();
         applyFilters();
@@ -114,8 +125,31 @@ function applyFilters() {
     });
 
     currentPage = 1;
-    totalCount.textContent = `พบ ${filteredBooks.length.toLocaleString()} รายการ`;
+    totalCount.textContent = `พบ ${filteredBooks.length.toLocaleString()} รายการ จากทั้งหมด ${allBooks.length.toLocaleString()} รายการ`;
     renderGrid();
+    checkWarnings(accountValue);
+}
+
+// Notice Logic
+const WARNING_MESSAGES = {
+    "11": "", "12": "",
+    "21": "⚠️ สื่อการเรียนรู้ รายวิชาพื้นฐาน: กระทรวงศึกษาธิการไม่ได้สนับสนุนงบประมาณในการจัดซื้อ",
+    "22": "⚠️ สื่อการเรียนรู้ รายวิชาพื้นฐาน: กระทรวงศึกษาธิการไม่ได้สนับสนุนงบประมาณในการจัดซื้อ",
+    "31": "⚠️ สื่อการเรียนรู้รายวิชาเพิ่มเติม: สถานศึกษาสามารถนำงบประมาณที่เหลือจากการจัดซื้อหนังสือเรียนรายวิชาพื้นฐาน ให้แก่นักเรียนทุกคนแล้วไปจัดซื้อได้ โดยผ่านความเห็นชอบของภาคี 4 ฝ่าย",
+    "32": "⚠️ สื่อการเรียนรู้รายวิชาเพิ่มเติม: สถานศึกษาสามารถนำงบประมาณที่เหลือจากการจัดซื้อหนังสือเรียนรายวิชาพื้นฐาน ให้แก่นักเรียนทุกคนแล้วไปจัดซื้อได้ โดยผ่านความเห็นชอบของภาคี 4 ฝ่าย"
+};
+
+function checkWarnings(account) {
+    if (WARNING_MESSAGES[account] || (account && account.includes("บัญชี 2") || account.includes("บัญชี 3"))) {
+        let warnText = "";
+        if (account.includes("2")) warnText = "⚠️ <b>บัญชีที่ 2 สื่อการเรียนรู้ รายวิชาพื้นฐาน:</b> กระทรวงศึกษาธิการไม่ได้สนับสนุนงบประมาณในการจัดซื้อ";
+        if (account.includes("3")) warnText = "⚠️ <b>บัญชีที่ 3 สื่อการเรียนรู้รายวิชาเพิ่มเติม:</b> สถานศึกษาสามารถนำงบประมาณที่เหลือจากการจัดซื้อหนังสือเรียนรายวิชาพื้นฐานให้แก่นักเรียนทุกคนแล้วไปจัดซื้อได้ โดยผ่านความเห็นชอบของภาคี 4 ฝ่าย";
+        
+        accountNotice.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><div>${warnText}</div>`;
+        accountNotice.classList.remove('hidden');
+    } else {
+        accountNotice.classList.add('hidden');
+    }
 }
 
 // Render Book Cards
@@ -177,6 +211,10 @@ function renderGrid() {
                 
                 <div class="price-tag">
                     <span>${book["ราคา"] || 'ไม่ระบุ'}</span>
+                    <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart(${book._id})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        เข้าตะกร้า
+                    </button>
                 </div>
             </div>
         `;
@@ -310,7 +348,126 @@ modal.onclick = (e) => {
     if (e.target === modal) closeModal.click();
 }
 
-// Event Listeners
+// ------ CART LOGIC ------
+function addToCart(bookId) {
+    const book = allBooks.find(b => b._id === bookId);
+    if (!book) return;
+    
+    // Check if duplicate
+    if(!cart.find(b => b._id === bookId)) {
+        cart.push(book);
+        saveCart();
+        
+        // Visual feedback
+        const btn = event.currentTarget;
+        const ogText = btn.innerHTML;
+        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> เพิ่มแล้ว`;
+        btn.style.background = "#34d399";
+        btn.style.color = "#000";
+        setTimeout(() => {
+            btn.innerHTML = ogText;
+            btn.style.background = "";
+            btn.style.color = "";
+        }, 1500);
+    }
+}
+
+function removeFromCart(bookId) {
+    cart = cart.filter(b => b._id !== bookId);
+    saveCart();
+    renderCart(); // re-render modal
+}
+
+function saveCart() {
+    localStorage.setItem('textbookCart', JSON.stringify(cart));
+    updateCartBadge();
+}
+
+function updateCartBadge() {
+    cartBadge.textContent = cart.length;
+    if (cart.length > 0) {
+        cartBadge.style.animation = "spin 0.3s ease-out";
+        setTimeout(()=> cartBadge.style.animation = "", 300);
+    }
+}
+
+function renderCart() {
+    cartItemsContainer.innerHTML = '';
+    cartTotalItems.textContent = `${cart.length} เล่ม`;
+    
+    if (cart.length === 0) {
+        cartItemsContainer.innerHTML = '<div style="text-align:center; padding: 2rem; color:var(--text-muted);">ไม่มีหนังสือในตะกร้า เริ่มค้นหาและเพิ่มได้เลย!</div>';
+        return;
+    }
+    
+    cart.forEach(book => {
+        const item = document.createElement('div');
+        item.className = 'cart-item';
+        item.innerHTML = `
+            <div class="cart-item-info">
+                <div class="cart-item-title">${book["ชื่อหนังสือ"]}</div>
+                <div class="cart-item-meta">${book["บัญชี"] || ''} | ${book["ประเภท"] || ''} - ${book["ราคา"] || 'ไม่ระบุราคา'}</div>
+            </div>
+            <button class="btn-remove" onclick="removeFromCart(${book._id})" title="ลบออก">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        `;
+        cartItemsContainer.appendChild(item);
+    });
+}
+
+function exportToXLS() {
+    if(cart.length === 0) {
+        alert("ตะกร้าว่างเปล่า! กรุณาเพิ่มหนังสือลงตะกร้าก่อน Export");
+        return;
+    }
+    
+    // Convert cart objects to suitable format for Excel
+    const exportData = cart.map(book => ({
+        "บัญชี": book["บัญชี"] || "",
+        "ประเภท": book["ประเภท"] || "",
+        "ชื่อหนังสือ": book["ชื่อหนังสือ"] || "",
+        "รายวิชา": book["รายวิชา"] || "",
+        "กลุ่มสาระ": book["กลุ่มสาระการเรียนรู้"] || "",
+        "ระดับชั้น": book["ชั้น"] || "",
+        "สำนักพิมพ์": book["ผู้จัดพิมพ์"] || "",
+        "ราคา": book["ราคา"] || ""
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Selected Books");
+    
+    XLSX.writeFile(workbook, "รายการหนังสือเรียนที่เลือก.xlsx", { compression: true });
+}
+
+// Event Listeners for Cart
+cartTrigger.addEventListener('click', () => {
+    renderCart();
+    cartModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+});
+
+closeCartModal.addEventListener('click', () => {
+    cartModal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+});
+
+cartModal.addEventListener('click', (e) => {
+    if (e.target === cartModal) closeCartModal.click();
+});
+
+clearCartBtn.addEventListener('click', () => {
+    if(confirm("แน่ใจหรือไม่ว่าต้องการล้างตะกร้าทั้งหมด?")) {
+        cart = [];
+        saveCart();
+        renderCart();
+    }
+});
+
+exportCartBtn.addEventListener('click', exportToXLS);
+
+// Event Listeners for Filters
 searchInput.addEventListener('input', applyFilters);
 filterAccount.addEventListener('change', applyFilters);
 filterType.addEventListener('change', applyFilters);
