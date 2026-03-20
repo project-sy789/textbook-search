@@ -172,16 +172,30 @@
                 <p style="color:var(--text-muted); margin-bottom:1rem; line-height:1.6;">ระบุจำนวนนักเรียนในแต่ละระดับชั้น เพื่อให้ระบบช่วยให้คำนวณวงเงินจัดสรรรวมในการเลือกซื้อหนังสือให้อัตโนมัติ (ใส่ 0 หรือเว้นว่างสำหรับชั้นที่ไม่ได้ซื้อ)</p>
                 
                 <div class="obec-guideline-box">
-                    <div style="font-weight:600; margin-bottom:0.4rem; color:#3b82f6; display:flex; align-items:center; gap:0.4rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    <div style="font-weight:600; color:#3b82f6; display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                         คำแนะนำการใช้ยอดนักเรียน (อิงระบบ DMC)
+                        <span id="dmcInfoBtn" style="margin-left:auto; cursor:pointer; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem; color:#93c5fd; font-weight:700; flex-shrink:0;" title="คลิกเพื่อดูรายละเอียด" onclick="document.getElementById('dmcInfoDetail').classList.toggle('hidden')">?</span>
                     </div>
-                    <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;">
-                        การจัดสรรงบจะแบ่งเป็นเทอมละ 2 รอบ (ล่วงหน้า 70% และเพิ่มเติมให้ครบ 100%) ดังนี้:
-                        <ul style="margin-top:0.3rem; margin-bottom:0; padding-left:1.2rem;">
-                            <li><b>เทอม 1:</b> 70% แรกใช้ยอด <b>10 พ.ย.</b> (ปีก่อน) / ที่เหลือใช้ยอด <b>10 มิ.ย.</b> (ปีปัจจุบัน)</li>
-                            <li><b>เทอม 2:</b> 70% แรกใช้ยอด <b>10 มิ.ย.</b> / ที่เหลือใช้ยอด <b>10 พ.ย.</b></li>
+                    <!-- Summary (always visible) -->
+                    <div style="font-size:0.84rem; color:var(--text-muted); line-height:1.6;">
+                        <b style="color:rgba(255,255,255,0.7)">เทอร์ 1:</b> 70% แรกใช้ยอด <b>10 พ.ย.</b> (ปีก่อน) &nbsp;·&nbsp; ที่เหลือใช้ยอด <b>10 มิ.ย.</b> (ปีปัจจุบัน)<br>
+                        <b style="color:rgba(255,255,255,0.7)">เทอร์ 2:</b> 70% แรกใช้ยอด <b>10 มิ.ย.</b> &nbsp;·&nbsp; ที่เหลือใช้ยอด <b>10 พ.ย.</b> (ปีปัจจุบัน)
+                    </div>
+                    <!-- Expandable detail (hidden by default) -->
+                    <div id="dmcInfoDetail" class="hidden" style="margin-top:0.75rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem; font-size:0.82rem; color:var(--text-muted); line-height:1.65;">
+                        <b style="color:#60a5fa">📌 ภาคเรียนที่ 1 — รอบ 70% แรก (ใช้ยอด 10 พ.ย. ปีก่อน)</b>
+                        <ul style="margin:0.3rem 0 0.75rem 1.1rem; padding:0;">
+                            <li><b>ชั้นเคลื่อน (อ.3, ป.2-6, ม.2-3, ม.5-6):</b> นำยอดชั้นน้องปีก่อนบวกขึ้นเป็นชั้นปีนี้
+                                <br><span style="color:rgba(255,255,255,0.5)">ตัวอย่าง: ยอด ป.1 ปีก่อน → ใช้เป็นฐานของ ป.2 ปีนี้</span>
+                            </li>
+                            <li><b>ชั้นเข้าใหม่ (อ.1, อ.2, ป.1, ม.1, ม.4):</b> ใช้ยอดชั้นเดิมของปีก่อน
+                                <br><span style="color:rgba(255,255,255,0.5)">ตัวอย่าง: ยอด ป.1 ปีก่อน → ใช้เป็นฐานของ ป.1 ปีนี้</span>
+                            </li>
                         </ul>
+                        <b style="color:#60a5fa">📌 ภาคเรียนที่ 1 — รอบที่ 2 (ใช้ยอด 10 มิ.ย. ปีปัจจุบัน)</b>
+                        <p style="margin:0.3rem 0 0.75rem 0;">ใช้ยอดนักเรียนที่มีตัวตนจริง เพื่อปรับยอดให้ครบ 100%</p>
+                        <b style="color:#60a5fa">📌 ภาคเรียนที่ 2:</b> รอบ 70% ใช้ยอด <b>10 มิ.ย.</b> / รอบที่เหลือใช้ยอด <b>10 พ.ย.</b> (ปีปัจจุบัน)
                     </div>
                 </div>
                 
@@ -214,6 +228,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=17"></script>
+    <script src="script.js?v=18"></script>
 </body>
 </html>
