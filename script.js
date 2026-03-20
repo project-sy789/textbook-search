@@ -12,6 +12,7 @@ const pagination = document.getElementById('pagination');
 const totalCount = document.getElementById('totalCount');
 const searchInput = document.getElementById('searchInput');
 
+const filterAccount = document.getElementById('filterAccount');
 const filterType = document.getElementById('filterType');
 const filterSubject = document.getElementById('filterSubject');
 const filterGrade = document.getElementById('filterGrade');
@@ -57,18 +58,21 @@ async function init() {
 
 // Extract unique values for filters
 function populateFilters() {
+    const accounts = new Set();
     const types = new Set();
     const subjects = new Set();
     const grades = new Set();
     const publishers = new Set();
 
     allBooks.forEach(book => {
+        if (book["บัญชี"]) accounts.add(book["บัญชี"]);
         if (book["ประเภท"]) types.add(book["ประเภท"]);
         if (book["กลุ่มสาระการเรียนรู้"]) subjects.add(book["กลุ่มสาระการเรียนรู้"]);
         if (book["ชั้น"]) grades.add(book["ชั้น"]);
         if (book["ผู้จัดพิมพ์"]) publishers.add(book["ผู้จัดพิมพ์"]);
     });
 
+    populateSelect(filterAccount, Array.from(accounts).sort());
     populateSelect(filterType, Array.from(types).sort());
     populateSelect(filterSubject, Array.from(subjects).sort());
     populateSelect(filterGrade, Array.from(grades).sort());
@@ -88,6 +92,7 @@ function populateSelect(selectElement, items) {
 // Filter Logic
 function applyFilters() {
     const searchTerm = searchInput.value.toLowerCase().trim();
+    const accountValue = filterAccount.value;
     const typeValue = filterType.value;
     const subjectValue = filterSubject.value;
     const gradeValue = filterGrade.value;
@@ -99,12 +104,13 @@ function applyFilters() {
             (book["ผู้เรียบเรียง"] && book["ผู้เรียบเรียง"].toLowerCase().includes(searchTerm)) ||
             (book["ผู้จัดพิมพ์"] && book["ผู้จัดพิมพ์"].toLowerCase().includes(searchTerm));
             
+        const matchesAccount = !accountValue || book["บัญชี"] === accountValue;
         const matchesType = !typeValue || book["ประเภท"] === typeValue;
         const matchesSubject = !subjectValue || book["กลุ่มสาระการเรียนรู้"] === subjectValue;
         const matchesGrade = !gradeValue || book["ชั้น"] === gradeValue;
         const matchesPublisher = !publisherValue || book["ผู้จัดพิมพ์"] === publisherValue;
 
-        return matchesSearch && matchesType && matchesSubject && matchesGrade && matchesPublisher;
+        return matchesSearch && matchesAccount && matchesType && matchesSubject && matchesGrade && matchesPublisher;
     });
 
     currentPage = 1;
@@ -136,14 +142,18 @@ function renderGrid() {
         card.className = 'book-card';
         card.onclick = () => openModal(globalIndex);
         
-        // Handle images that might be empty or invalid
-        const imgSrc = book["รูปภาพ"] ? book["รูปภาพ"] : '';
+        const rawImgSrc = book["รูปภาพ"] || '';
+        // Use weserv proxy for HTTP images strictly on HTTPS origins
+        const imgSrc = rawImgSrc.startsWith('http://') 
+            ? `https://images.weserv.nl/?url=${encodeURIComponent(rawImgSrc)}` 
+            : rawImgSrc;
+
         const imgBlock = imgSrc 
             ? `<img src="${imgSrc}" alt="${book["ชื่อหนังสือ"]}" loading="lazy" onerror="this.outerHTML='<div class=\\'no-image-placeholder\\'><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg><span>ไม่มีรูปภาพ</span></div>'">` 
             : `<div class="no-image-placeholder"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>`;
 
         card.innerHTML = `
-            ${book["ประเภท"] ? `<div class="badge-tag">${book["ประเภท"]}</div>` : ''}
+            ${book["บัญชี"] ? `<div class="badge-tag">${book["บัญชี"]}</div>` : ''}
             <div class="card-image">
                 ${imgBlock}
             </div>
@@ -243,7 +253,10 @@ function createEllipsis() {
 // Modal Logic
 function openModal(index) {
     const book = filteredBooks[index];
-    const imgSrc = book["รูปภาพ"] || '';
+    const rawImgSrc = book["รูปภาพ"] || '';
+    const imgSrc = rawImgSrc.startsWith('http://') 
+        ? `https://images.weserv.nl/?url=${encodeURIComponent(rawImgSrc)}` 
+        : rawImgSrc;
     
     modalContent.innerHTML = `
         <div class="detail-layout">
@@ -251,7 +264,7 @@ function openModal(index) {
                 ${imgSrc ? `<img src="${imgSrc}" alt="book cover" onerror="this.outerHTML='<span style=\\'color:#94a3b8\\'>ไม่มีรูปภาพ</span>'">` : '<span style="color:#94a3b8">ไม่มีรูปภาพ</span>'}
             </div>
             <div class="detail-info">
-                <div class="detail-type">${book["ประเภท"] || 'หนังสือ'}</div>
+                <div class="detail-type">${book["บัญชี"] || ''} | ${book["ประเภท"] || 'หนังสือ'}</div>
                 <h2 class="detail-title">${book["ชื่อหนังสือ"] || 'ไม่ระบุชื่อ'}</h2>
                 <div style="color:var(--text-muted); margin-bottom: 2rem;">${book["ผู้แต่ง"] || book["ผู้เรียบเรียง"] || ''}</div>
                 
@@ -299,6 +312,7 @@ modal.onclick = (e) => {
 
 // Event Listeners
 searchInput.addEventListener('input', applyFilters);
+filterAccount.addEventListener('change', applyFilters);
 filterType.addEventListener('change', applyFilters);
 filterSubject.addEventListener('change', applyFilters);
 filterGrade.addEventListener('change', applyFilters);
@@ -306,6 +320,7 @@ filterPublisher.addEventListener('change', applyFilters);
 
 resetFilters.addEventListener('click', () => {
     searchInput.value = '';
+    filterAccount.value = '';
     filterType.value = '';
     filterSubject.value = '';
     filterGrade.value = '';

@@ -48,7 +48,7 @@ class MyHTMLParser(HTMLParser):
         if self.in_item and data:
             self.current_item.append(data)
 
-def extract_item(texts):
+def extract_item(texts, account_name):
     if len(texts) < 2:
         return {}
     
@@ -68,6 +68,7 @@ def extract_item(texts):
     book_name = clean_texts[1]
     
     item_dict = {
+        "บัญชี": account_name,
         "ประเภท": book_type,
         "ชื่อหนังสือ": book_name,
         "รายวิชา": "",
@@ -104,43 +105,52 @@ def main():
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    # Include bookmain 11,12,21,22,31,32 per user's request
-    base_url = "http://202.29.173.190/textbook/web/index.php?bookmain=11%2C12%2C21%2C22%2C31%2C32&bookgroup=&class=&bookprint=&bookcategory=&name=&bookeditor=&id_round=&chksearch=true&ispage="
+    accounts = {
+        "11": "บัญชี 1.1",
+        "12": "บัญชี 1.2",
+        "21": "บัญชี 2.1",
+        "22": "บัญชี 2.2",
+        "31": "บัญชี 3.1",
+        "32": "บัญชี 3.2"
+    }
     
     all_books = []
-    page = 1
     
-    while True:
-        url = base_url + str(page)
-        print(f"Fetching page {page}...")
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        try:
-            response = urllib.request.urlopen(req, context=ctx)
-            html = response.read().decode('utf-8', errors='replace')
-            
-            parser = MyHTMLParser()
-            parser.feed(html)
-            
-            if not parser.items:
-                print(f"No items found on page {page}. Stopping.")
-                break
+    for bookmain_id, account_name in accounts.items():
+        base_url = f"http://202.29.173.190/textbook/web/index.php?bookmain={bookmain_id}&bookgroup=&class=&bookprint=&bookcategory=&name=&bookeditor=&id_round=&chksearch=true&ispage="
+        page = 1
+        
+        print(f"--- Fetching {account_name} ---")
+        while True:
+            url = base_url + str(page)
+            print(f"Fetching page {page} of {account_name}...")
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            try:
+                response = urllib.request.urlopen(req, context=ctx)
+                html = response.read().decode('utf-8', errors='replace')
                 
-            for texts in parser.items:
-                book_data = extract_item(texts)
-                if book_data:
-                    all_books.append(book_data)
+                parser = MyHTMLParser()
+                parser.feed(html)
+                
+                if not parser.items:
+                    print(f"No more items for {account_name}. Stopping.")
+                    break
                     
-            print(f"Page {page} fetched {len(parser.items)} items.")
-            page += 1
-            
-        except Exception as e:
-            print(f"Error fetching page {page}: {e}")
-            break
+                for texts in parser.items:
+                    book_data = extract_item(texts, account_name)
+                    if book_data:
+                        all_books.append(book_data)
+                        
+                print(f"Page {page} fetched {len(parser.items)} items.")
+                page += 1
+                
+            except Exception as e:
+                print(f"Error fetching page {page}: {e}")
+                break
 
     print(f"Finished fetching. Total books: {len(all_books)}")
     
     if all_books:
-        # Save to the root of the project
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filename = os.path.join(project_dir, "data.json")
         with open(filename, 'w', encoding='utf-8') as f:
