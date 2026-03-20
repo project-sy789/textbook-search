@@ -660,20 +660,48 @@ function validateCartRules() {
             });
         }
         
-        // Account 2 and 3 Lock (Strictly per-grade)
+        // Account 2 and 3 Lock (Strictly per-grade, per-regulation)
+        // Rule: account1 spending for a grade must cover full allocated budget (nStudents × rate)
+        // before account 2/3 items for that grade can be purchased.
         if (hasAccount3 || hasAccount2) {
+            // Build account1 spend per grade map
+            const account1SpendPerGrade = {};
             cart.forEach(item => {
-                let acc = item["บัญชี"] || "";
-                let grade = item["ชั้น"] || "";
-                if (acc.includes("บัญชี 2") || acc.includes("บัญชี 3")) {
+                let acc = item["\u0e1a\u0e31\u0e0d\u0e0a\u0e35"] || "";
+                let itemGrade = item["\u0e0a\u0e31\u0e49\u0e19"] || "";
+                if (acc.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 1")) {
+                    let cost = parsePrice(item["\u0e23\u0e32\u0e04\u0e32"]) * (item.quantity || 1);
+                    account1SpendPerGrade[itemGrade] = (account1SpendPerGrade[itemGrade] || 0) + cost;
+                }
+            });
+
+            // Check each Account 2/3 item
+            const seenGradeError = new Set();
+            cart.forEach(item => {
+                let acc = item["\u0e1a\u0e31\u0e0d\u0e0a\u0e35"] || "";
+                let grade = item["\u0e0a\u0e31\u0e49\u0e19"] || "";
+                if ((acc.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 2") || acc.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 3")) && !seenGradeError.has(grade)) {
                     let cat = getGradeCategory(grade);
-                    if (cat !== "อนุบาล") {
+                    if (cat !== "\u0e2d\u0e19\u0e38\u0e1a\u0e32\u0e25") {
+                        // Find grade budget allocation
+                        let gradeObj = GRADE_LIST.find(g => g.id === grade);
+                        let allocatedForGrade = gradeObj ? (studentCounts[gradeObj.id] || 0) * gradeObj.rate : 0;
+                        let spentOnAcc1ForGrade = account1SpendPerGrade[grade] || 0;
                         let gradeHas8 = subjectsPerGrade[grade] && subjectsPerGrade[grade].size >= 8;
-                        if (!gradeHas8 || remainingBudget < 0) {
-                            res.errors.push(`สื่อบัญชี 2-3 ชั้น ${grade || 'ไม่ระบุ'} (${item["ชื่อหนังสือ"]}) จัดซื้อได้เมื่อชั้นนี้เลือกวิชาพื้นฐานครบ 8 กลุ่มสาระและโรงเรียนมีงบเหลือจ่าย`);
+
+                        if (!gradeHas8) {
+                            res.errors.push(`\u0e0a\u0e31\u0e49\u0e19 ${grade}: \u0e22\u0e31\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e31\u0e0d\u0e0a\u0e35 1 \u0e44\u0e21\u0e48\u0e04\u0e23\u0e1a 8 \u0e01\u0e25\u0e38\u0e48\u0e21\u0e2a\u0e32\u0e23\u0e30 (\u0e21\u0e35 ${subjectsPerGrade[grade] ? subjectsPerGrade[grade].size : 0}/8)`);
+                            seenGradeError.add(grade);
+                        } else if (allocatedForGrade > 0 && spentOnAcc1ForGrade < allocatedForGrade) {
+                            let diff = allocatedForGrade - spentOnAcc1ForGrade;
+                            res.errors.push(`\u0e0a\u0e31\u0e49\u0e19 ${grade}: \u0e22\u0e2d\u0e14\u0e0b\u0e37\u0e49\u0e2d\u0e1a\u0e31\u0e0d\u0e0a\u0e35 1 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e04\u0e23\u0e2d\u0e07\u0e2a\u0e34\u0e17\u0e18\u0e34\u0e4c\u0e17\u0e38\u0e01\u0e04\u0e19 (\u0e0b\u0e37\u0e49\u0e2d\u0e44\u0e1b ฿${spentOnAcc1ForGrade.toLocaleString('th-TH')} / \u0e08\u0e31\u0e14\u0e2a\u0e23\u0e23 ฿${allocatedForGrade.toLocaleString('th-TH')} \u0e22\u0e31\u0e07\u0e02\u0e32\u0e14 ฿${diff.toLocaleString('th-TH')})`);
+                            seenGradeError.add(grade);
+                        } else if (allocatedForGrade === 0) {
+                            res.errors.push(`\u0e0a\u0e31\u0e49\u0e19 ${grade}: \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e23\u0e30\u0e1a\u0e38\u0e08\u0e33\u0e19\u0e27\u0e19\u0e19\u0e31\u0e01\u0e40\u0e23\u0e35\u0e22\u0e19\u0e43\u0e19\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e07\u0e1a\u0e1b\u0e23\u0e30\u0e21\u0e32\u0e13 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e14\u0e1b\u0e38\u0e48\u0e21 \u2699\ufe0f \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e01\u0e23\u0e2d\u0e01\u0e08\u0e33\u0e19\u0e27\u0e19\u0e19\u0e31\u0e01\u0e40\u0e23\u0e35\u0e22\u0e19\u0e01\u0e48\u0e2d\u0e19`);
+                            seenGradeError.add(grade);
                         }
                     } else if (remainingBudget < 0) {
-                        res.errors.push(`สื่อปฐมวัย (${item["ชื่อหนังสือ"]}) จัดซื้อได้เมื่องบโรงเรียนไม่ติดลบ`);
+                        res.errors.push(`\u0e2a\u0e37\u0e48\u0e2d\u0e1b\u0e10\u0e21\u0e27\u0e31\u0e22 (${item["\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e31\u0e07\u0e2a\u0e37\u0e2d"]}) \u0e08\u0e31\u0e14\u0e0b\u0e37\u0e49\u0e2d\u0e44\u0e14\u0e49\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e07\u0e1a\u0e42\u0e23\u0e07\u0e40\u0e23\u0e35\u0e22\u0e19\u0e44\u0e21\u0e48\u0e15\u0e34\u0e14\u0e25\u0e1a`);
                     }
                 }
             });
