@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -27,6 +27,39 @@
                     <h1>ระบบค้นหาสื่อการเรียนรู้</h1>
                 </div>
                 <div class="header-actions">
+                    <!-- Global Budget Settings Toolbar -->
+                    <div class="budget-toolbar-compact">
+                        <div class="budget-toolbar-group">
+                            <label class="budget-toolbar-label">ชั้น/นักเรียน:</label>
+                            <select id="cartGradeSelect" class="form-control budget-toolbar-input" style="width:75px;">
+                                <option value="อนุบาล">อนุบาล</option>
+                                <option value="ป.1">ป.1</option>
+                                <option value="ป.2">ป.2</option>
+                                <option value="ป.3">ป.3</option>
+                                <option value="ป.4">ป.4</option>
+                                <option value="ป.5">ป.5</option>
+                                <option value="ป.6" selected>ป.6</option>
+                                <option value="ม.1">ม.1</option>
+                                <option value="ม.2">ม.2</option>
+                                <option value="ม.3">ม.3</option>
+                                <option value="ม.4">ม.4</option>
+                                <option value="ม.5">ม.5</option>
+                                <option value="ม.6">ม.6</option>
+                            </select>
+                            <input type="number" id="cartStudentCount" class="form-control budget-toolbar-input" min="1" value="30" style="width:65px;">
+                        </div>
+                        
+                        <div class="budget-toolbar-divider"></div>
+                        
+                        <div class="budget-toolbar-group">
+                            <span class="budget-toolbar-label strict-mode-label" title="โหมดตรวจระเบียบ สพฐ.">Strict Mode:</span>
+                            <label class="switch" style="transform: scale(0.85); margin:0;">
+                                <input type="checkbox" id="obecStrictModeToggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="stats-badge" id="totalCount">กำลังโหลด...</div>
                     <button class="cart-trigger" id="cartTrigger" title="ตะกร้าหนังสือ">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
@@ -156,6 +189,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=9"></script>
+    <script src="script.js?v=10"></script>
 </body>
 </html>
