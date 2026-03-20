@@ -510,6 +510,7 @@ function validateCartRules() {
     };
     
     let account1Subjects = new Set();
+    let subjectsPerGrade = {};
     let hasWorkbook = false;
     let hasAccount3 = false;
     let hasAccount2 = false;
@@ -519,9 +520,12 @@ function validateCartRules() {
         let t = item["ประเภท"] || "";
         let subj = item["กลุ่มสาระการเรียนรู้"] || "";
         let title = item["ชื่อหนังสือ"] || "";
+        let grade = item["ชั้น"] || "";
         
-        if (acc.includes("บัญชี 1")) {
-             if (subj) account1Subjects.add(subj.trim());
+        if (acc.includes("บัญชี 1") && subj) {
+             account1Subjects.add(subj.trim());
+             if (!subjectsPerGrade[grade]) subjectsPerGrade[grade] = new Set();
+             subjectsPerGrade[grade].add(subj.trim());
         }
         if (t.includes("แบบฝึกหัด")) hasWorkbook = true;
         if (acc.includes("บัญชี 2")) hasAccount2 = true;
@@ -543,9 +547,21 @@ function validateCartRules() {
     if (isObecStrictMode) {
         let requires8Groups = GRADE_LIST.some(g => (studentCounts[g.id] || 0) > 0 && getGradeCategory(g.id) !== "อนุบาล");
         
-        // Basic Subjects
-        if (requires8Groups && !has8Groups && cart.length > 0) {
-            res.warnings.push(`คุณเลือกหนังสือวิชาพื้นฐาน (บัญชี 1) ไปแล้ว ${account1Subjects.size} จาก 8 กลุ่มสาระ`);
+        // Basic Subjects Warning per grade
+        if (requires8Groups && cart.length > 0) {
+            let missingGroups = false;
+            GRADE_LIST.forEach(g => {
+                if ((studentCounts[g.id] || 0) > 0 && getGradeCategory(g.id) !== "อนุบาล") {
+                    let count = subjectsPerGrade[g.id] ? subjectsPerGrade[g.id].size : 0;
+                    if (count > 0 && count < 8) {
+                        res.warnings.push(`ชั้น ${g.id} เลือกวิชาพื้นฐานไปแล้ว ${count} จาก 8 กลุ่มสาระ`);
+                        missingGroups = true;
+                    }
+                }
+            });
+            if (!missingGroups && !has8Groups) {
+                res.warnings.push(`โดยรวมคุณเลือกหนังสือวิชาพื้นฐานไปแล้ว ${account1Subjects.size} จาก 8 กลุ่มสาระ`);
+            }
         }
         
         // Workbooks
@@ -568,9 +584,23 @@ function validateCartRules() {
             });
         }
         
-        // Account 2 and 3 Lock
-        if ((hasAccount3 || hasAccount2) && (!has8Groups || remainingBudget < 0)) {
-            res.errors.push("บัญชี 2 และ 3 ไม่อนุญาตให้จัดซื้อจนกว่าจะเลือกวิชาพื้นฐานครบ 8 กลุ่มสาระและมีงบประมาณเหลือจ่าย");
+        // Account 2 and 3 Lock (Strictly per-grade)
+        if (hasAccount3 || hasAccount2) {
+            cart.forEach(item => {
+                let acc = item["บัญชี"] || "";
+                let grade = item["ชั้น"] || "";
+                if (acc.includes("บัญชี 2") || acc.includes("บัญชี 3")) {
+                    let cat = getGradeCategory(grade);
+                    if (cat !== "อนุบาล") {
+                        let gradeHas8 = subjectsPerGrade[grade] && subjectsPerGrade[grade].size >= 8;
+                        if (!gradeHas8 || remainingBudget < 0) {
+                            res.errors.push(`สื่อบัญชี 2-3 ชั้น ${grade || 'ไม่ระบุ'} (${item["ชื่อหนังสือ"]}) จัดซื้อได้เมื่อชั้นนี้เลือกวิชาพื้นฐานครบ 8 กลุ่มสาระและโรงเรียนมีงบเหลือจ่าย`);
+                        }
+                    } else if (remainingBudget < 0) {
+                        res.errors.push(`สื่อปฐมวัย (${item["ชื่อหนังสือ"]}) จัดซื้อได้เมื่องบโรงเรียนไม่ติดลบ`);
+                    }
+                }
+            });
         }
     }
     
