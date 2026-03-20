@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบสืบค้นหนังสือเรียนและสื่อการเรียนรู้</title>
+    <meta name="description" content="ระบบค้นหาและกรองข้อมูลหนังสือเรียนและสื่อการเรียนรู้ทั้งหมด บัญชี 1, 2 และ 3 อย่างรวดเร็ว">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="app-container">
+        <header class="glass-header">
+            <div class="header-content">
+                <div class="logo-area">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    <h1>ระบบค้นหาสื่อการเรียนรู้</h1>
+                </div>
+                <div class="stats-badge" id="totalCount">กำลังโหลด...</div>
+            </div>
+            
+            <div class="search-filter-section">
+                <div class="search-bar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" id="searchInput" placeholder="ค้นหาชื่อหนังสือ, ผู้แต่ง, สำนักพิมพ์...">
+                </div>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <select id="filterType">
+                            <option value="">ทุกประเภท (หนังสือ/แบบฝึกหัด)</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterSubject">
+                            <option value="">ทุกกลุ่มสาระการเรียนรู้</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterGrade">
+                            <option value="">ทุกระดับชั้น</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filterPublisher">
+                            <option value="">ทุกสำนักพิมพ์</option>
+                        </select>
+                    </div>
+                    <button id="resetFilters" class="btn-icon" title="ล้างตัวกรอง">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="loading" class="loading-state">
+                <div class="spinner"></div>
+                <p>กำลังดึงข้อมูลฐานหนังสือ...</p>
+            </div>
+            
+            <div id="noResults" class="hidden no-results">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <h2>ไม่พบหนังสือที่คุณค้นหา</h2>
+                <p>ลองปรับเปลี่ยนคำค้นหาหรือตัวกรองดูอีกครั้ง</p>
+                <button class="btn-primary" onclick="document.getElementById('resetFilters').click()">ล้างตัวกรอง</button>
+            </div>
+
+            <div class="grid-container" id="bookGrid">
+                <!-- Cards will be injected here by JS -->
+            </div>
+            
+            <div class="pagination" id="pagination">
+                <!-- Pagination will be injected here -->
+            </div>
+        </main>
+        
+        <footer>
+            <p>ฐานข้อมูลจากสำนักวิชาการและมาตรฐานการศึกษา อัปเดตล่าสุดอัตโนมัติผ่าน GitHub Actions</p>
+        </footer>
+    </div>
+
+    <!-- Modal for Book Details -->
+    <div id="bookModal" class="modal-overlay hidden">
+        <div class="modal glass-panel">
+            <button class="modal-close" id="closeModal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div class="modal-content" id="modalContent">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
