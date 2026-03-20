@@ -98,8 +98,7 @@ body {
     padding: 1.5rem 2rem;
     margin-bottom: 2rem;
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-    position: sticky;
-    top: 1rem;
+    position: relative;
     z-index: 100;
 }
 
