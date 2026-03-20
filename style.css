@@ -258,6 +258,20 @@ select:focus {
     color: #000;
 }
 
+.btn-add-cart.added {
+    background: #10b981;
+    border-color: #10b981;
+    color: #000;
+    cursor: default;
+}
+
+.btn-add-cart.added:hover {
+    background: #10b981;
+    color: #000;
+    transform: none;
+    box-shadow: none;
+}
+
 /* Notice Box */
 .notice-box {
     background: rgba(245, 158, 11, 0.15);

@@ -186,6 +186,16 @@ function renderGrid() {
             ? `<img src="${imgSrc}" alt="${book["ชื่อหนังสือ"]}" loading="lazy" onerror="this.outerHTML='<div class=\\'no-image-placeholder\\'><svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg><span>ไม่มีรูปภาพ</span></div>'">` 
             : `<div class="no-image-placeholder"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></div>`;
 
+        const inCart = cart.find(b => b._id === book._id);
+        const btnClass = inCart ? "btn-add-cart added" : "btn-add-cart";
+        const btnText = inCart 
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> นำเข้าแล้ว`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> เข้าตะกร้า`;
+        
+        const onclickAttr = inCart 
+            ? `onclick="event.stopPropagation();"` 
+            : `onclick="event.stopPropagation(); addToCart(this, ${book._id})"`;
+
         card.innerHTML = `
             ${book["บัญชี"] ? `<div class="badge-tag">${book["บัญชี"]}</div>` : ''}
             <div class="card-image">
@@ -211,9 +221,8 @@ function renderGrid() {
                 
                 <div class="price-tag">
                     <span>${book["ราคา"] || 'ไม่ระบุ'}</span>
-                    <button class="btn-add-cart" onclick="event.stopPropagation(); addToCart(${book._id})">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        เข้าตะกร้า
+                    <button class="${btnClass}" ${onclickAttr}>
+                        ${btnText}
                     </button>
                 </div>
             </div>
@@ -349,7 +358,7 @@ modal.onclick = (e) => {
 }
 
 // ------ CART LOGIC ------
-function addToCart(bookId) {
+function addToCart(btnElement, bookId) {
     const book = allBooks.find(b => b._id === bookId);
     if (!book) return;
     
@@ -359,16 +368,9 @@ function addToCart(bookId) {
         saveCart();
         
         // Visual feedback
-        const btn = event.currentTarget;
-        const ogText = btn.innerHTML;
-        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> เพิ่มแล้ว`;
-        btn.style.background = "#34d399";
-        btn.style.color = "#000";
-        setTimeout(() => {
-            btn.innerHTML = ogText;
-            btn.style.background = "";
-            btn.style.color = "";
-        }, 1500);
+        btnElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> นำเข้าแล้ว`;
+        btnElement.classList.add("added");
+        btnElement.onclick = (e) => e.stopPropagation();
     }
 }
 
@@ -376,6 +378,7 @@ function removeFromCart(bookId) {
     cart = cart.filter(b => b._id !== bookId);
     saveCart();
     renderCart(); // re-render modal
+    renderGrid(); // Refresh buttons state in main grid
 }
 
 function saveCart() {
@@ -462,6 +465,7 @@ clearCartBtn.addEventListener('click', () => {
         cart = [];
         saveCart();
         renderCart();
+        renderGrid(); // Refresh buttons
     }
 });
 
