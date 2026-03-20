@@ -251,13 +251,17 @@ const WARNING_MESSAGES = {
     "32": "⚠️ สื่อการเรียนรู้รายวิชาเพิ่มเติม: สถานศึกษาสามารถนำงบประมาณที่เหลือจากการจัดซื้อหนังสือเรียนรายวิชาพื้นฐาน ให้แก่นักเรียนทุกคนแล้วไปจัดซื้อได้ โดยผ่านความเห็นชอบของภาคี 4 ฝ่าย"
 };
 
-function checkWarnings(account) {
-    if (WARNING_MESSAGES[account] || (account && account.includes("บัญชี 2") || account.includes("บัญชี 3"))) {
-        let warnText = "";
-        if (account.includes("2")) warnText = "⚠️ <b>บัญชีที่ 2 สื่อการเรียนรู้ รายวิชาพื้นฐาน:</b> กระทรวงศึกษาธิการไม่ได้สนับสนุนงบประมาณในการจัดซื้อ";
-        if (account.includes("3")) warnText = "⚠️ <b>บัญชีที่ 3 สื่อการเรียนรู้รายวิชาเพิ่มเติม:</b> สถานศึกษาสามารถนำงบประมาณที่เหลือจากการจัดซื้อหนังสือเรียนรายวิชาพื้นฐานให้แก่นักเรียนทุกคนแล้วไปจัดซื้อได้ โดยผ่านความเห็นชอบของภาคี 4 ฝ่าย";
+function checkWarnings(accountStr) {
+    const has2 = accountStr.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 2");
+    const has3 = accountStr.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 3");
+    
+    if (has2 || has3) {
+        let lines = [];
+        if (has2) lines.push(`⚠️ <b>\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48 2 \u0e2a\u0e37\u0e48\u0e2d\u0e01\u0e32\u0e23\u0e40\u0e23\u0e35\u0e22\u0e19\u0e23\u0e39\u0e49 \u0e23\u0e32\u0e22\u0e27\u0e34\u0e0a\u0e32\u0e1e\u0e37\u0e49\u0e19\u0e10\u0e32\u0e19:</b> \u0e01\u0e23\u0e30\u0e17\u0e23\u0e27\u0e07\u0e28\u0e36\u0e01\u0e29\u0e32\u0e18\u0e34\u0e01\u0e32\u0e23\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e2a\u0e19\u0e31\u0e1a\u0e2a\u0e19\u0e38\u0e19\u0e07\u0e1a\u0e1b\u0e23\u0e30\u0e21\u0e32\u0e13\u0e43\u0e19\u0e01\u0e32\u0e23\u0e08\u0e31\u0e14\u0e0b\u0e37\u0e49\u0e2d`);
+        if (has3) lines.push(`⚠️ <b>\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48 3 \u0e2a\u0e37\u0e48\u0e2d\u0e01\u0e32\u0e23\u0e40\u0e23\u0e35\u0e22\u0e19\u0e23\u0e39\u0e49\u0e23\u0e32\u0e22\u0e27\u0e34\u0e0a\u0e32\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21:</b> \u0e08\u0e31\u0e14\u0e0b\u0e37\u0e49\u0e2d\u0e44\u0e14\u0e49\u0e08\u0e32\u0e01\u0e07\u0e1a\u0e17\u0e35\u0e48\u0e40\u0e2b\u0e25\u0e37\u0e2d\u0e2b\u0e25\u0e31\u0e07\u0e0b\u0e37\u0e49\u0e2d\u0e1a\u0e31\u0e0d\u0e0a\u0e35 1 \u0e04\u0e23\u0e1a\u0e17\u0e38\u0e01\u0e04\u0e19\u0e41\u0e25\u0e49\u0e27 \u0e1c\u0e48\u0e32\u0e19\u0e04\u0e27\u0e32\u0e21\u0e40\u0e2b\u0e47\u0e19\u0e0a\u0e2d\u0e1a\u0e02\u0e2d\u0e07\u0e20\u0e32\u0e04\u0e35 4 \u0e1d\u0e48\u0e32\u0e22`);
         
-        accountNotice.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><div>${warnText}</div>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:3px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+        accountNotice.innerHTML = `${svg}<div style="line-height:1.6;">${lines.join('<br>')}</div>`;
         accountNotice.classList.remove('hidden');
     } else {
         accountNotice.classList.add('hidden');
