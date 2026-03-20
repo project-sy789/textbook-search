@@ -42,6 +42,6 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data.json
+          git add data.json updated.json
           git commit -m "chore: อัปเดตฐานข้อมูลหนังสือเรียนอัตโนมัติ"
           git push

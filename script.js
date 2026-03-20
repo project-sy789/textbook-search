@@ -53,6 +53,22 @@ async function init() {
             updateCartBadge();
         }
         
+        // Fetch metadata
+        try {
+            const metaRes = await fetch('updated.json');
+            if (metaRes.ok) {
+                const meta = await metaRes.json();
+                const d = new Date(meta.last_updated);
+                const formatter = new Intl.DateTimeFormat('th-TH', { 
+                    year: 'numeric', month: 'long', day: 'numeric', 
+                    hour: '2-digit', minute: '2-digit' 
+                });
+                document.getElementById('lastUpdated').textContent = `🕒 ดึงข้อมูลล่าสุดเมื่อ: ${formatter.format(d)} น.`;
+            }
+        } catch(e) {
+            console.error('No updated.json found', e);
+        }
+        
         populateFilters();
         applyFilters();
         
