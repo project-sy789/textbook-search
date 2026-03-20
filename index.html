@@ -161,6 +161,47 @@
         </div>
     </div>
 
-    <script src="script.js?v=12"></script>
+    <!-- Modal for Budget Settings -->
+    <div id="budgetSettingsModal" class="modal-overlay hidden">
+        <div class="modal glass-panel" style="max-width: 600px;">
+            <div class="modal-header-cart">
+                <h2>⚙️ ตั้งค่างบประมาณโรงเรียน</h2>
+                <button class="modal-close" style="position:static;" id="closeSettingsModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-content" style="padding-top:1rem; padding-bottom:1rem;">
+                <p style="color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6;">ระบุจำนวนนักเรียนในแต่ละระดับชั้น เพื่อให้ระบบช่วยให้คำนวณวงเงินจัดสรรรวมในการเลือกซื้อหนังสือให้อัตโนมัติ (ใส่ 0 หรือเว้นว่างสำหรับชั้นที่ไม่ได้ซื้อ)</p>
+                
+                <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); padding:1rem 1.25rem; border-radius:12px; margin-bottom:1.5rem;">
+                    <div>
+                        <span style="font-size:1.05rem; font-weight:600; color:white;">OBEC Strict Mode</span>
+                        <span style="display:block; color:var(--text-muted); font-size:0.85rem; margin-top:0.2rem;">เปิดใช้ผู้ช่วยวิเคราะห์และบล็อกสินค้าที่ผิดระเบียบ สพฐ.</span>
+                    </div>
+                    <label class="switch" style="margin:0;">
+                        <input type="checkbox" id="obecStrictModeToggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="grade-settings-list" id="gradeSettingsList">
+                    <!-- Javascript will inject list here -->
+                </div>
+                
+                <div style="margin-top:2rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; background:rgba(52, 211, 153, 0.1); color:#34d399; padding:1.25rem; border-radius:12px; border:1px solid rgba(52, 211, 153, 0.2);">
+                        <span style="font-size:1.1rem; font-weight:500;">ยอดงบประมาณรวมทั้งสิ้น</span>
+                        <span id="settingsTotalBudgetStr" style="font-size:1.4rem; font-weight:600;">฿0</span>
+                    </div>
+                    <button class="btn-primary" style="background:#3b82f6; width:100%; justify-content:center; padding:0.85rem;" id="saveSettingsBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.5rem;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?v=13"></script>
 </body>
 </html>

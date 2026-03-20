@@ -130,9 +130,10 @@ async function init() {
     } catch (error) {
         console.error('Error loading data:', error);
         loading.innerHTML = `
-            <svg style="color:#ef4444" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <h2 style="margin-top:1rem;color:#f8fafc">ไม่สามารถโหลดข้อมูลได้</h2>
-            <p style="color:#94a3b8">กรุณาตรวจสอบว่ามีไฟล์ data.json อยู่ในโฟลเดอร์ หรือลองรีเฟรชหน้าเว็บ</p>
+            <div style="color:red; text-align:left; background:black; padding:1rem; overflow:auto;">
+                <h3>Init Error:</h3>
+                <pre>${error.message}\n${error.stack}</pre>
+            </div>
         `;
     }
 }
