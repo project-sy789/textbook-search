@@ -818,53 +818,70 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* Budget Settings Panel (Compact for Header) */
-.budget-toolbar-compact {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+/* Settings Button */
+.settings-trigger {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--glass-border);
+    color: var(--text-color);
     padding: 0.5rem 1rem;
-    border-radius: 12px;
-}
-
-.budget-toolbar-group {
+    border-radius: 999px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-.budget-toolbar-label {
-    font-size: 0.85rem; 
-    color: var(--text-muted); 
-    white-space: nowrap;
-}
-
-.strict-mode-label {
+    font-family: var(--font-family);
+    font-size: 0.95rem;
     font-weight: 500;
-    color: white;
+    transition: all 0.3s ease;
 }
 
-.budget-toolbar-input {
-    padding: 0.4rem; 
-    height: auto; 
-    min-height: 0;
+.settings-trigger:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.budget-toolbar-divider {
-    width: 1px;
-    height: 24px;
-    background: var(--glass-border);
+/* Grade Settings List inside Modal */
+.grade-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
 }
 
-@media (max-width: 1024px) {
-    .budget-toolbar-compact {
-        width: 100%;
-        justify-content: space-between;
-        order: 3;
-        margin-top: 0.5rem;
-    }
+.grade-row {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr 1fr;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.grade-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.grade-label {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.grade-rate {
+    color: #3b82f6;
+    font-size: 0.9rem;
+    text-align: right;
+    padding-right: 1rem;
+}
+
+.grade-row input[type="number"] {
+    width: 100%;
+    text-align: center;
+    padding: 0.4rem;
 }
 
 /* Validation Alerts */
