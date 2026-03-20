@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=14">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -171,7 +171,21 @@
                 </button>
             </div>
             <div class="modal-content" style="padding-top:1rem; padding-bottom:1rem;">
-                <p style="color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6;">ระบุจำนวนนักเรียนในแต่ละระดับชั้น เพื่อให้ระบบช่วยให้คำนวณวงเงินจัดสรรรวมในการเลือกซื้อหนังสือให้อัตโนมัติ (ใส่ 0 หรือเว้นว่างสำหรับชั้นที่ไม่ได้ซื้อ)</p>
+                <p style="color:var(--text-muted); margin-bottom:1rem; line-height:1.6;">ระบุจำนวนนักเรียนในแต่ละระดับชั้น เพื่อให้ระบบช่วยให้คำนวณวงเงินจัดสรรรวมในการเลือกซื้อหนังสือให้อัตโนมัติ (ใส่ 0 หรือเว้นว่างสำหรับชั้นที่ไม่ได้ซื้อ)</p>
+                
+                <div class="obec-guideline-box">
+                    <div style="font-weight:600; margin-bottom:0.4rem; color:#3b82f6; display:flex; align-items:center; gap:0.4rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        คำแนะนำการใช้ยอดนักเรียน (อิงระบบ DMC)
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;">
+                        การจัดสรรงบจะแบ่งเป็นเทอมละ 2 รอบ (ล่วงหน้า 70% และเพิ่มเติมให้ครบ 100%) ดังนี้:
+                        <ul style="margin-top:0.3rem; margin-bottom:0; padding-left:1.2rem;">
+                            <li><b>เทอม 1:</b> 70% แรกใช้ยอด <b>10 พ.ย.</b> (ปีก่อน) / ที่เหลือใช้ยอด <b>10 มิ.ย.</b> (ปีปัจจุบัน)</li>
+                            <li><b>เทอม 2:</b> 70% แรกใช้ยอด <b>10 มิ.ย.</b> / ที่เหลือใช้ยอด <b>10 พ.ย.</b></li>
+                        </ul>
+                    </div>
+                </div>
                 
                 <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); padding:1rem 1.25rem; border-radius:12px; margin-bottom:1.5rem;">
                     <div>
@@ -202,6 +216,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=13"></script>
+    <script src="script.js?v=14"></script>
 </body>
 </html>

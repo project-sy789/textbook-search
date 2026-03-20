@@ -841,6 +841,15 @@ input:checked + .slider:before {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
+/* Modal Guideline Box */
+.obec-guideline-box {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.5rem;
+}
+
 /* Grade Settings List inside Modal */
 .grade-settings-list {
     display: flex;
