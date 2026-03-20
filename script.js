@@ -40,6 +40,15 @@ const pagination = document.getElementById('pagination');
 const totalCount = document.getElementById('totalCount');
 const searchInput = document.getElementById('searchInput');
 
+// Choices.js instances (multi-selects)
+const choicesInstances = {};
+
+function getMultiValues(id) {
+    const inst = choicesInstances[id];
+    if (!inst) return [];
+    return inst.getValue(true); // returns array of selected values
+}
+
 const filterAccount = document.getElementById('filterAccount');
 const filterType = document.getElementById('filterType');
 const filterSubject = document.getElementById('filterSubject');
@@ -124,6 +133,7 @@ async function init() {
         });
 
         populateFilters();
+        initChoices();
         applyFilters();
         
         loading.classList.add('hidden');
@@ -154,52 +164,83 @@ function populateFilters() {
         if (book["ผู้จัดพิมพ์"]) publishers.add(book["ผู้จัดพิมพ์"]);
     });
 
-    populateSelect(filterAccount, Array.from(accounts).sort());
-    populateSelect(filterType, Array.from(types).sort());
-    populateSelect(filterSubject, Array.from(subjects).sort());
-    populateSelect(filterGrade, Array.from(grades).sort());
-    populateSelect(filterPublisher, Array.from(publishers).sort());
+    addOptionsToSelect('filterAccount', Array.from(accounts).sort());
+    addOptionsToSelect('filterType', Array.from(types).sort());
+    addOptionsToSelect('filterSubject', Array.from(subjects).sort());
+    addOptionsToSelect('filterGrade', Array.from(grades).sort());
+    addOptionsToSelect('filterPublisher', Array.from(publishers).sort());
 }
 
-function populateSelect(selectElement, items) {
+function addOptionsToSelect(id, items) {
+    const el = document.getElementById(id);
     items.forEach(item => {
         if (!item) return;
         const option = document.createElement('option');
         option.value = item;
         option.textContent = item;
-        selectElement.appendChild(option);
+        el.appendChild(option);
+    });
+}
+
+function initChoices() {
+    const configs = [
+        { id: 'filterAccount',   placeholder: 'ทุกบัญชีรายชื่อ' },
+        { id: 'filterType',      placeholder: 'ทุกประเภท (หนังสือ/แบบฝึกหัด)' },
+        { id: 'filterSubject',   placeholder: 'ทุกกลุ่มสาระการเรียนรู้' },
+        { id: 'filterGrade',     placeholder: 'ทุกระดับชั้น' },
+        { id: 'filterPublisher', placeholder: 'ทุกสำนักพิมพ์' },
+    ];
+    configs.forEach(({ id, placeholder }) => {
+        const el = document.getElementById(id);
+        if (!el || !window.Choices) return;
+        choicesInstances[id] = new Choices(el, {
+            removeItemButton: true,
+            placeholderValue: placeholder,
+            searchPlaceholderValue: 'พิมพ์เพื่อค้นหา...',
+            noResultsText: 'ไม่พบรายการที่ตรงกัน',
+            noChoicesText: 'มีแค่ค่าที่เลือกข้างต้น',
+            itemSelectText: '',
+            maxItemCount: -1,
+            shouldSort: false,
+            renderHTMLSelection: false,
+        });
+        el.addEventListener('change', applyFilters);
     });
 }
 
 // Filter Logic
 function applyFilters() {
     const searchTerm = searchInput.value.toLowerCase().trim();
-    const accountValue = filterAccount.value;
-    const typeValue = filterType.value;
-    const subjectValue = filterSubject.value;
-    const gradeValue = filterGrade.value;
-    const publisherValue = filterPublisher.value;
+    const accounts   = getMultiValues('filterAccount');
+    const types      = getMultiValues('filterType');
+    const subjects   = getMultiValues('filterSubject');
+    const grades     = getMultiValues('filterGrade');
+    const publishers = getMultiValues('filterPublisher');
 
     filteredBooks = allBooks.filter(book => {
         const matchesSearch = !searchTerm || 
-            (book["ชื่อหนังสือ"] && book["ชื่อหนังสือ"].toLowerCase().includes(searchTerm)) ||
-            (book["ผู้เรียบเรียง"] && book["ผู้เรียบเรียง"].toLowerCase().includes(searchTerm)) ||
-            (book["ผู้จัดพิมพ์"] && book["ผู้จัดพิมพ์"].toLowerCase().includes(searchTerm));
+            (book["\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e31\u0e07\u0e2a\u0e37\u0e2d"] && book["\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e31\u0e07\u0e2a\u0e37\u0e2d"].toLowerCase().includes(searchTerm)) ||
+            (book["\u0e1c\u0e39\u0e49\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e40\u0e23\u0e35\u0e22\u0e07"] && book["\u0e1c\u0e39\u0e49\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e40\u0e23\u0e35\u0e22\u0e07"].toLowerCase().includes(searchTerm)) ||
+            (book["\u0e1c\u0e39\u0e49\u0e08\u0e31\u0e14\u0e1e\u0e34\u0e21\u0e1e\u0e4c"] && book["\u0e1c\u0e39\u0e49\u0e08\u0e31\u0e14\u0e1e\u0e34\u0e21\u0e1e\u0e4c"].toLowerCase().includes(searchTerm));
             
-        const matchesAccount = !accountValue || book["บัญชี"] === accountValue;
-        const matchesType = !typeValue || book["ประเภท"] === typeValue;
-        const matchesSubject = !subjectValue || book["กลุ่มสาระการเรียนรู้"] === subjectValue;
-        const matchesGrade = !gradeValue || book["ชั้น"] === gradeValue;
-        const matchesPublisher = !publisherValue || book["ผู้จัดพิมพ์"] === publisherValue;
+        const matchesAccount   = accounts.length === 0   || accounts.includes(book["\u0e1a\u0e31\u0e0d\u0e0a\u0e35"]);
+        const matchesType      = types.length === 0      || types.includes(book["\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17"]);
+        const matchesSubject   = subjects.length === 0   || subjects.includes(book["\u0e01\u0e25\u0e38\u0e48\u0e21\u0e2a\u0e32\u0e23\u0e30\u0e01\u0e32\u0e23\u0e40\u0e23\u0e35\u0e22\u0e19\u0e23\u0e39\u0e49"]);
+        const matchesGrade     = grades.length === 0     || grades.includes(book["\u0e0a\u0e31\u0e49\u0e19"]);
+        const matchesPublisher = publishers.length === 0 || publishers.includes(book["\u0e1c\u0e39\u0e49\u0e08\u0e31\u0e14\u0e1e\u0e34\u0e21\u0e1e\u0e4c"]);
 
         return matchesSearch && matchesAccount && matchesType && matchesSubject && matchesGrade && matchesPublisher;
     });
 
     currentPage = 1;
-    totalCount.textContent = `พบ ${filteredBooks.length.toLocaleString()} รายการ จากทั้งหมด ${allBooks.length.toLocaleString()} รายการ`;
+    const allSelected = [...accounts, ...types, ...subjects, ...grades, ...publishers];
+    totalCount.textContent = allSelected.length > 0
+        ? `\u0e1e\u0e1a ${filteredBooks.length.toLocaleString()} \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 (\u0e01\u0e23\u0e2d\u0e07: ${allSelected.slice(0, 3).join(', ')}${allSelected.length > 3 ? '...' : ''})`
+        : `\u0e1e\u0e1a ${filteredBooks.length.toLocaleString()} \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 \u0e08\u0e32\u0e01\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14 ${allBooks.length.toLocaleString()} \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23`;
     renderGrid();
-    checkWarnings(accountValue);
+    checkWarnings(accounts.join(','));
 }
+
 
 // Notice Logic
 const WARNING_MESSAGES = {
@@ -847,19 +888,12 @@ exportCartBtn.addEventListener('click', exportToXLS);
 
 // Event Listeners for Filters
 searchInput.addEventListener('input', applyFilters);
-filterAccount.addEventListener('change', applyFilters);
-filterType.addEventListener('change', applyFilters);
-filterSubject.addEventListener('change', applyFilters);
-filterGrade.addEventListener('change', applyFilters);
-filterPublisher.addEventListener('change', applyFilters);
 
 resetFilters.addEventListener('click', () => {
     searchInput.value = '';
-    filterAccount.value = '';
-    filterType.value = '';
-    filterSubject.value = '';
-    filterGrade.value = '';
-    filterPublisher.value = '';
+    Object.values(choicesInstances).forEach(c => {
+        c.removeActiveItems();
+    });
     applyFilters();
 });
 

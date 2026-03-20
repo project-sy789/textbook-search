@@ -8,9 +8,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="style.css?v=17">
+    <!-- Choices.js multi-select -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
     <!-- SheetJS for Excel Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 </head>
 <body>
     <div class="background-blobs">
@@ -48,28 +51,23 @@
                 
                 <div class="filters">
                     <div class="filter-group">
-                        <select id="filterAccount">
-                            <option value="">ทุกบัญชีรายชื่อ</option>
+                        <select id="filterAccount" multiple>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <select id="filterType">
-                            <option value="">ทุกประเภท (หนังสือ/แบบฝึกหัด)</option>
+                        <select id="filterType" multiple>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <select id="filterSubject">
-                            <option value="">ทุกกลุ่มสาระการเรียนรู้</option>
+                        <select id="filterSubject" multiple>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <select id="filterGrade">
-                            <option value="">ทุกระดับชั้น</option>
+                        <select id="filterGrade" multiple>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <select id="filterPublisher">
-                            <option value="">ทุกสำนักพิมพ์</option>
+                        <select id="filterPublisher" multiple>
                         </select>
                     </div>
                     <button id="resetFilters" class="btn-icon" title="ล้างตัวกรอง">
@@ -216,6 +214,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=16"></script>
+    <script src="script.js?v=17"></script>
 </body>
 </html>
