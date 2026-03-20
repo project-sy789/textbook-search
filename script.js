@@ -395,6 +395,13 @@ function updateCartBadge() {
     }
 }
 
+function parsePrice(priceStr) {
+    if (!priceStr) return 0;
+    const cleaned = priceStr.toString().replace(/,/g, '').replace(/[^\d.]/g, '');
+    const val = parseFloat(cleaned);
+    return isNaN(val) ? 0 : val;
+}
+
 function updateQuantity(bookId, newQty) {
     const item = cart.find(b => b._id === bookId);
     if (item) {
@@ -402,15 +409,29 @@ function updateQuantity(bookId, newQty) {
         saveCart();
         
         // Update Total Items without re-rendering the whole cart body to avoid losing input focus
-        let total = cart.reduce((sum, b) => sum + (b.quantity || 1), 0);
-        cartTotalItems.textContent = `${total} เล่ม`;
+        let total = 0;
+        let totalPrice = 0;
+        cart.forEach(b => {
+            const qty = b.quantity || 1;
+            total += qty;
+            totalPrice += parsePrice(b["ราคา"]) * qty;
+        });
+        cartTotalItems.innerHTML = `${total} เล่ม <span style="color:#34d399; margin-left:1rem;">฿${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
     }
 }
 
 function renderCart() {
     cartItemsContainer.innerHTML = '';
-    let totalQty = cart.reduce((sum, book) => sum + (book.quantity || 1), 0);
-    cartTotalItems.textContent = `${totalQty} เล่ม`;
+    
+    let totalQty = 0;
+    let totalPrice = 0;
+    cart.forEach(book => {
+        const qty = book.quantity || 1;
+        totalQty += qty;
+        totalPrice += parsePrice(book["ราคา"]) * qty;
+    });
+    
+    cartTotalItems.innerHTML = `${totalQty} เล่ม <span style="color:#34d399; margin-left:1rem;">฿${totalPrice.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>`;
     
     if (cart.length === 0) {
         cartItemsContainer.innerHTML = '<div style="text-align:center; padding: 2rem; color:var(--text-muted);">ไม่มีหนังสือในตะกร้า เริ่มค้นหาและเพิ่มได้เลย!</div>';
@@ -421,10 +442,13 @@ function renderCart() {
         const item = document.createElement('div');
         item.className = 'cart-item';
         const qty = book.quantity || 1;
+        const lineTotal = parsePrice(book["ราคา"]) * qty;
+        
         item.innerHTML = `
             <div class="cart-item-info">
                 <div class="cart-item-title">${book["ชื่อหนังสือ"]}</div>
                 <div class="cart-item-meta">${book["บัญชี"] || ''} | ${book["ประเภท"] || ''} - ${book["ราคา"] || 'ไม่ระบุราคา'}</div>
+                <div style="color:#34d399; font-weight:500; font-size:0.9rem; margin-top:0.25rem;">รวม: ฿${lineTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}</div>
             </div>
             <div class="cart-item-qty" style="display:flex; align-items:center; gap:0.5rem; margin-right: 1rem;">
                 <span style="font-size:0.85rem; color:var(--text-muted);">จำนวน: </span>
@@ -445,17 +469,22 @@ function exportToXLS() {
     }
     
     // Convert cart objects to suitable format for Excel
-    const exportData = cart.map(book => ({
-        "บัญชี": book["บัญชี"] || "",
-        "ประเภท": book["ประเภท"] || "",
-        "ชื่อหนังสือ": book["ชื่อหนังสือ"] || "",
-        "รายวิชา": book["รายวิชา"] || "",
-        "กลุ่มสาระ": book["กลุ่มสาระการเรียนรู้"] || "",
-        "ระดับชั้น": book["ชั้น"] || "",
-        "สำนักพิมพ์": book["ผู้จัดพิมพ์"] || "",
-        "ราคา": book["ราคา"] || "",
-        "จำนวนเล่ม": book.quantity || 1
-    }));
+    const exportData = cart.map(book => {
+        const qty = book.quantity || 1;
+        const price = parsePrice(book["ราคา"]);
+        return {
+            "บัญชี": book["บัญชี"] || "",
+            "ประเภท": book["ประเภท"] || "",
+            "ชื่อหนังสือ": book["ชื่อหนังสือ"] || "",
+            "รายวิชา": book["รายวิชา"] || "",
+            "กลุ่มสาระ": book["กลุ่มสาระการเรียนรู้"] || "",
+            "ระดับชั้น": book["ชั้น"] || "",
+            "สำนักพิมพ์": book["ผู้จัดพิมพ์"] || "",
+            "ราคาต่อหน่วย": price,
+            "จำนวนเล่ม": qty,
+            "ราคารวม": price * qty
+        };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
