@@ -591,98 +591,158 @@ function validateCartRules() {
     let hasAccount3 = false;
     let hasAccount2 = false;
     
+    // --- First pass: build per-grade data structures ---
+    let account1TextbookQtyPerGradeSubject = {};  // { grade: { subject: totalQty } }
+    let workbookQtyPerGradeSubject = {};           // { grade: { subject: totalQty } }
+
     cart.forEach(item => {
-        let acc = item["บัญชี"] || "";
-        let t = item["ประเภท"] || "";
-        let subj = item["กลุ่มสาระการเรียนรู้"] || "";
+        let acc   = item["บัญชี"] || "";
+        let t     = item["ประเภท"] || "";
+        let subj  = (item["กลุ่มสาระการเรียนรู้"] || "").trim();
         let title = item["ชื่อหนังสือ"] || "";
         let grade = item["ชั้น"] || "";
-        
+        let qty   = item.quantity || 1;
+
         if (acc.includes("บัญชี 1") && subj) {
-             account1Subjects.add(subj.trim());
-             if (!subjectsPerGrade[grade]) subjectsPerGrade[grade] = new Set();
-             subjectsPerGrade[grade].add(subj.trim());
+            account1Subjects.add(subj);
+            if (!subjectsPerGrade[grade]) subjectsPerGrade[grade] = new Set();
+            subjectsPerGrade[grade].add(subj);
+
+            if (t.includes("แบบฝึกหัด")) {
+                if (!workbookQtyPerGradeSubject[grade]) workbookQtyPerGradeSubject[grade] = {};
+                workbookQtyPerGradeSubject[grade][subj] = (workbookQtyPerGradeSubject[grade][subj] || 0) + qty;
+            } else {
+                if (!account1TextbookQtyPerGradeSubject[grade]) account1TextbookQtyPerGradeSubject[grade] = {};
+                account1TextbookQtyPerGradeSubject[grade][subj] = (account1TextbookQtyPerGradeSubject[grade][subj] || 0) + qty;
+            }
         }
         if (t.includes("แบบฝึกหัด")) hasWorkbook = true;
         if (acc.includes("บัญชี 2")) hasAccount2 = true;
         if (acc.includes("บัญชี 3")) hasAccount3 = true;
-        
-        // Curriculum Checking
+
+        // Curriculum year check
         if (isObecStrictMode && acc.includes("บัญชี 1")) {
             if (subj.includes("คณิตศาสตร์") || subj.includes("วิทยาศาสตร์") || subj.includes("ภูมิศาสตร์")) {
                 let is2560 = (item["ปีพิมพ์เผยแพร่"] === "2560" || title.includes("2560") || title.includes("60"));
-                if (!is2560) {
-                    res.warnings.push(`ตรวจสอบ: [${title}] กลุ่ม${subj} อาจไม่ใช่ฉบับปรับปรุง พ.ศ. 2560`);
-                }
+                if (!is2560) res.warnings.push(`ตรวจสอบ: [\${title}] กลุ่ม\${subj} อาจไม่ใช่ฉบับปรับปรุง พ.ศ. 2560`);
             }
         }
     });
-    
+
     let has8Groups = account1Subjects.size >= 8;
-    
+
     if (isObecStrictMode) {
         let requires8Groups = GRADE_LIST.some(g => (studentCounts[g.id] || 0) > 0 && getGradeCategory(g.id) !== "อนุบาล");
-        
-        // Basic Subjects Warning per grade
+
+        // --- Warning: incomplete 8-group progress per grade ---
         if (requires8Groups && cart.length > 0) {
-            let missingGroups = false;
             GRADE_LIST.forEach(g => {
                 if ((studentCounts[g.id] || 0) > 0 && getGradeCategory(g.id) !== "อนุบาล") {
                     let count = subjectsPerGrade[g.id] ? subjectsPerGrade[g.id].size : 0;
                     if (count > 0 && count < 8) {
-                        res.warnings.push(`ชั้น ${g.id} เลือกวิชาพื้นฐานไปแล้ว ${count} จาก 8 กลุ่มสาระ`);
-                        missingGroups = true;
+                        res.warnings.push(`ชั้น \${g.id} เลือกวิชาพื้นฐานไปแล้ว \${count} จาก 8 กลุ่มสาระ`);
                     }
                 }
             });
-            if (!missingGroups && !has8Groups) {
-                res.warnings.push(`โดยรวมคุณเลือกหนังสือวิชาพื้นฐานไปแล้ว ${account1Subjects.size} จาก 8 กลุ่มสาระ`);
-            }
         }
-        
-        // Workbooks
+
+        // --- Workbook illegal-purchase check ---
         if (hasWorkbook) {
             cart.forEach(item => {
                 if ((item["ประเภท"] || "").includes("แบบฝึกหัด")) {
                     let bookGrade = item["ชั้น"] || "";
                     let cat = getGradeCategory(bookGrade);
+                    let subj = item["กลุ่มสาระการเรียนรู้"] || "";
                     if (cat === "อนุบาล") {
-                        res.errors.push(`พบบุ๊คปฐมวัย (${item["ชื่อหนังสือ"]}) ไม่อนุญาตให้จัดซื้อแบบฝึกหัด`);
+                        res.errors.push(`ปฐมวัย ห้ามซื้อแบบฝึกหัด (\${item["ชื่อหนังสือ"]})`);
                     } else if (cat === "มัธยม") {
-                         res.errors.push(`ระดับมัธยมศึกษา ไม่อนุญาตให้ซื้อแบบฝึกหัด (${item["ชื่อหนังสือ"]})`);
+                        res.errors.push(`ระดับมัธยมศึกษา ห้ามซื้อแบบฝึกหัด (\${item["ชื่อหนังสือ"]})`);
                     } else if (cat === "ประถม") {
-                        let subj = item["กลุ่มสาระการเรียนรู้"] || "";
                         if (!subj.includes("ภาษาไทย") && !subj.includes("คณิตศาสตร์") && !subj.includes("ต่างประเทศ")) {
-                            res.errors.push(`ระดับประถม อนุญาตเฉพาะแบบฝึกหัด ไทย, คณิต, อังกฤษ (พบ: ${subj})`);
+                            res.errors.push(`ระดับประถม อนุญาตเฉพาะแบบฝึกหัด ไทย, คณิต, อังกฤษ (พบ: \${subj})`);
                         }
                     }
                 }
             });
         }
-        
-        // Account 2 and 3 Lock (Strictly per-grade, per OBEC regulation)
-        // Condition: Grade must have Account 1 covering all 8 subject groups
-        // AND overall school remaining budget must not be negative
-        // (remaining budget = money left after buying Account 1 for all students → use for Account 2/3)
+
+        // =========================================================
+        // Account 2 and 3 Lock — Full OBEC Compliance Check
+        // =========================================================
         if (hasAccount3 || hasAccount2) {
             const seenGradeError = new Set();
+            const WORKBOOK_REQUIRED_SUBJECTS = ["ภาษาไทย", "คณิตศาสตร์", "ภาษาต่างประเทศ"];
+
+            // Check textbook Qty per subject >= nStudents
+            function checkSubjectQty(grade, nStudents) {
+                if (!subjectsPerGrade[grade] || subjectsPerGrade[grade].size < 8) {
+                    return { ok: false, msg: `ยังเลือกหนังสือเรียนบัญชี 1 ไม่ครบ 8 กลุ่มสาระ (มี \${subjectsPerGrade[grade] ? subjectsPerGrade[grade].size : 0}/8)` };
+                }
+                let lacking = [];
+                subjectsPerGrade[grade].forEach(subj => {
+                    let tQty = (account1TextbookQtyPerGradeSubject[grade] && account1TextbookQtyPerGradeSubject[grade][subj]) || 0;
+                    if (tQty < nStudents) lacking.push(`\${subj} (\${tQty}/\${nStudents} เล่ม)`);
+                });
+                if (lacking.length > 0) return { ok: false, msg: `จำนวนหนังสือยังไม่ครอบนักเรียนทุกคน: \${lacking.join(', ')}` };
+                return { ok: true };
+            }
+
+            // Check 3 mandatory workbooks Qty >= nStudents
+            function checkWorkbookQty(grade, nStudents) {
+                let missing = [];
+                WORKBOOK_REQUIRED_SUBJECTS.forEach(subj => {
+                    let wQty = (workbookQtyPerGradeSubject[grade] && workbookQtyPerGradeSubject[grade][subj]) || 0;
+                    let tag = subj.includes("ไทย") ? "ภาษาไทย" : subj.includes("คณิต") ? "คณิตศาสตร์" : "ภาษาอังกฤษ";
+                    if (wQty < nStudents) missing.push(`\${tag} (\${wQty}/\${nStudents} เล่ม)`);
+                });
+                if (missing.length > 0) return { ok: false, msg: `แบบฝึกหัดบังคับ (3 วิชา) ยังไม่ครบจำนวนนักเรียน: \${missing.join(', ')}` };
+                return { ok: true };
+            }
+
             cart.forEach(item => {
-                let acc = item["\u0e1a\u0e31\u0e0d\u0e0a\u0e35"] || "";
-                let grade = item["\u0e0a\u0e31\u0e49\u0e19"] || "";
-                if ((acc.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 2") || acc.includes("\u0e1a\u0e31\u0e0d\u0e0a\u0e35 3")) && !seenGradeError.has(grade)) {
+                let acc   = item["บัญชี"] || "";
+                let grade = item["ชั้น"] || "";
+                if ((acc.includes("บัญชี 2") || acc.includes("บัญชี 3")) && !seenGradeError.has(grade)) {
                     let cat = getGradeCategory(grade);
-                    if (cat !== "\u0e2d\u0e19\u0e38\u0e1a\u0e32\u0e25") {
-                        let gradeSubjectCount = subjectsPerGrade[grade] ? subjectsPerGrade[grade].size : 0;
-                        let gradeHas8 = gradeSubjectCount >= 8;
-                        if (!gradeHas8) {
-                            res.errors.push(`\u0e0a\u0e31\u0e49\u0e19 ${grade}: \u0e22\u0e31\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e31\u0e0d\u0e0a\u0e35 1 \u0e44\u0e21\u0e48\u0e04\u0e23\u0e1a 8 \u0e01\u0e25\u0e38\u0e48\u0e21\u0e2a\u0e32\u0e23\u0e30 (\u0e21\u0e35 ${gradeSubjectCount}/8) — \u0e15\u0e49\u0e2d\u0e07\u0e0b\u0e37\u0e49\u0e2d\u0e1a\u0e31\u0e0d\u0e0a\u0e35 1 \u0e43\u0e2b\u0e49\u0e04\u0e23\u0e1a\u0e01\u0e48\u0e2d\u0e19\u0e08\u0e36\u0e07\u0e08\u0e30\u0e0b\u0e37\u0e49\u0e2d\u0e1a\u0e31\u0e0d\u0e0a\u0e35 2-3 \u0e44\u0e14\u0e49`);
-                            seenGradeError.add(grade);
-                        } else if (remainingBudget < 0) {
-                            res.errors.push(`\u0e0a\u0e31\u0e49\u0e19 ${grade}: \u0e07\u0e1a\u0e42\u0e23\u0e07\u0e40\u0e23\u0e35\u0e22\u0e19\u0e15\u0e34\u0e14\u0e25\u0e1a \u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e08\u0e31\u0e14\u0e0b\u0e37\u0e49\u0e2d\u0e1a\u0e31\u0e0d\u0e0a\u0e35 2-3 \u0e44\u0e14\u0e49`);
+                    let nStudents = studentCounts[grade] || 0;
+
+                    if (cat === "อนุบาล") {
+                        if (remainingBudget < 0) {
+                            res.errors.push(`สื่อปฐมวัย ชั้น \${grade}: งบโรงเรียนติดลบ ไม่สามารถจัดซื้อได้`);
                             seenGradeError.add(grade);
                         }
-                    } else if (remainingBudget < 0) {
-                        res.errors.push(`\u0e2a\u0e37\u0e48\u0e2d\u0e1b\u0e10\u0e21\u0e27\u0e31\u0e22 (${item["\u0e0a\u0e37\u0e48\u0e2d\u0e2b\u0e19\u0e31\u0e07\u0e2a\u0e37\u0e2d"]}) \u0e08\u0e31\u0e14\u0e0b\u0e37\u0e49\u0e2d\u0e44\u0e14\u0e49\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e07\u0e1a\u0e42\u0e23\u0e07\u0e40\u0e23\u0e35\u0e22\u0e19\u0e44\u0e21\u0e48\u0e15\u0e34\u0e14\u0e25\u0e1a`);
+                    } else if (cat === "ประถม") {
+                        let fails = [];
+                        if (nStudents === 0) {
+                            fails.push("ยังไม่ได้ระบุจำนวนนักเรียน กรุณากดปุ่ม ⚙️ ก่อน");
+                        } else {
+                            let r1 = checkSubjectQty(grade, nStudents);
+                            if (!r1.ok) fails.push(r1.msg);
+                            let r2 = checkWorkbookQty(grade, nStudents);
+                            if (!r2.ok) fails.push(r2.msg);
+                        }
+                        if (remainingBudget < 0) fails.push("งบโรงเรียนติดลบ");
+                        if (fails.length > 0) {
+                            fails.forEach(f => res.errors.push(`ชั้น \${grade} [ประถม]: \${f}`));
+                            seenGradeError.add(grade);
+                        } else {
+                            res.warnings.push(`✅ ชั้น \${grade}: การจัดซื้อบัญชี 2-3 ต้องผ่านความเห็นชอบของคณะกรรมการภาคี 4 ฝ่าย และกรรมการสถานศึกษาขั้นพื้นฐานก่อนดำเนินการ`);
+                        }
+                    } else if (cat === "มัธยม") {
+                        let fails = [];
+                        if (nStudents === 0) {
+                            fails.push("ยังไม่ได้ระบุจำนวนนักเรียน กรุณากดปุ่ม ⚙️ ก่อน");
+                        } else {
+                            let r1 = checkSubjectQty(grade, nStudents);
+                            if (!r1.ok) fails.push(r1.msg);
+                        }
+                        if (remainingBudget < 0) fails.push("งบโรงเรียนติดลบ");
+                        if (fails.length > 0) {
+                            fails.forEach(f => res.errors.push(`ชั้น \${grade} [มัธยม]: \${f}`));
+                            seenGradeError.add(grade);
+                        } else {
+                            res.warnings.push(`✅ ชั้น \${grade}: การจัดซื้อบัญชี 2-3 ต้องผ่านความเห็นชอบของคณะกรรมการภาคี 4 ฝ่าย และกรรมการสถานศึกษาขั้นพื้นฐานก่อนดำเนินการ`);
+                        }
                     }
                 }
             });
