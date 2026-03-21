@@ -608,12 +608,16 @@ function validateCartRules() {
             if (!subjectsPerGrade[grade]) subjectsPerGrade[grade] = new Set();
             subjectsPerGrade[grade].add(subj);
 
+            // effectiveQty = ordered qty + existing/donated qty
+            let existingQty = item.existingQty || 0;
+            let effectiveQty = qty + existingQty;
+
             if (t.includes("แบบฝึกหัด")) {
                 if (!workbookQtyPerGradeSubject[grade]) workbookQtyPerGradeSubject[grade] = {};
-                workbookQtyPerGradeSubject[grade][subj] = (workbookQtyPerGradeSubject[grade][subj] || 0) + qty;
+                workbookQtyPerGradeSubject[grade][subj] = (workbookQtyPerGradeSubject[grade][subj] || 0) + effectiveQty;
             } else {
                 if (!account1TextbookQtyPerGradeSubject[grade]) account1TextbookQtyPerGradeSubject[grade] = {};
-                account1TextbookQtyPerGradeSubject[grade][subj] = (account1TextbookQtyPerGradeSubject[grade][subj] || 0) + qty;
+                account1TextbookQtyPerGradeSubject[grade][subj] = (account1TextbookQtyPerGradeSubject[grade][subj] || 0) + effectiveQty;
             }
         }
         if (t.includes("แบบฝึกหัด")) hasWorkbook = true;
@@ -681,7 +685,7 @@ function validateCartRules() {
                 let lacking = [];
                 subjectsPerGrade[grade].forEach(subj => {
                     let tQty = (account1TextbookQtyPerGradeSubject[grade] && account1TextbookQtyPerGradeSubject[grade][subj]) || 0;
-                    if (tQty < nStudents) lacking.push(`\${subj} (\${tQty}/\${nStudents} เล่ม)`);
+                    if (tQty < nStudents) lacking.push(`\${subj} (รวม \${tQty}/\${nStudents} เล่ม — สั่งซื้อ+บริจาค)`);
                 });
                 if (lacking.length > 0) return { ok: false, msg: `จำนวนหนังสือยังไม่ครอบนักเรียนทุกคน: \${lacking.join(', ')}` };
                 return { ok: true };
@@ -777,6 +781,16 @@ function updateQuantity(bookId, newQty) {
     }
 }
 
+function updateExistingQty(bookId, newQty) {
+    const item = cart.find(b => b._id === bookId);
+    if (item) {
+        item.existingQty = Math.max(0, parseInt(newQty) || 0);
+        saveCart();
+        renderCartDashboardOnly();
+    }
+}
+
+
 function renderCartDashboardOnly() {
     let vRes = validateCartRules();
     
@@ -867,9 +881,18 @@ function renderCart() {
                 <div class="cart-item-meta">${book["บัญชี"] || ''} | ${book["ประเภท"] || ''} - ${book["ราคา"] || 'ไม่ระบุราคา'}</div>
                 <div style="color:#34d399; font-weight:500; font-size:0.9rem; margin-top:0.25rem;">รวม: ฿${lineTotal.toLocaleString('th-TH', {minimumFractionDigits: 2})}</div>
             </div>
-            <div class="cart-item-qty" style="display:flex; align-items:center; gap:0.5rem; margin-right: 1rem;">
-                <span style="font-size:0.85rem; color:var(--text-muted);">จำนวน: </span>
-                <input type="number" min="1" value="${qty}" onchange="updateQuantity(${book._id}, this.value)" style="width: 60px; padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; text-align: center; font-family: var(--font-family);">
+            <div class="cart-item-qty" style="display:flex; flex-direction:column; gap:0.4rem; margin-right:1rem; min-width:160px;">
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <span style="font-size:0.8rem; color:var(--text-muted); width:80px;">สั่งซื้อ:</span>
+                    <input type="number" min="1" value="${qty}" onchange="updateQuantity(${book._id}, this.value)" style="width: 60px; padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; text-align: center; font-family: var(--font-family);">
+                </div>
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <span style="font-size:0.8rem; color:#fbbf24; width:80px;">มีอยู่แล้ว:</span>
+                    <input type="number" min="0" value="${book.existingQty || 0}" onchange="updateExistingQty(${book._id}, this.value)" title="จำนวนหนังสือที่มีอยู่แล้วหรือได้รับบริจาค (จะไม่นับในยอดสั่งซื้อ)" style="width: 60px; padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid rgba(251,191,36,0.3); background: rgba(251,191,36,0.07); color: #fbbf24; text-align: center; font-family: var(--font-family);">
+                </div>
+                <div style="font-size:0.75rem; color:${((qty)+(book.existingQty||0)) > 0 ? '#34d399' : 'var(--text-muted)'};">
+                    รวมทั้งหมด: ${qty + (book.existingQty || 0)} เล่ม
+                </div>
             </div>
             <button class="btn-remove" onclick="removeFromCart(${book._id})" title="ลบออก">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
