@@ -628,7 +628,7 @@ function validateCartRules() {
         if (isObecStrictMode && acc.includes("บัญชี 1")) {
             if (subj.includes("คณิตศาสตร์") || subj.includes("วิทยาศาสตร์") || subj.includes("ภูมิศาสตร์")) {
                 let is2560 = (item["ปีพิมพ์เผยแพร่"] === "2560" || title.includes("2560") || title.includes("60"));
-                if (!is2560) res.warnings.push(`ตรวจสอบ: [\${title}] กลุ่ม\${subj} อาจไม่ใช่ฉบับปรับปรุง พ.ศ. 2560`);
+                if (!is2560) res.warnings.push(`ตรวจสอบ: [${title}] กลุ่ม${subj} อาจไม่ใช่ฉบับปรับปรุง พ.ศ. 2560`);
             }
         }
     });
